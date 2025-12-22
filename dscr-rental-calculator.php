@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DSCR Rental Calculator Test
  * Description: A real-time Debt Service Coverage Ratio (DSCR) calculator for real estate investors.
- * Version: 1.1
+ * Version: 1.2
  * Author: GLTS
  */
 
@@ -62,7 +62,7 @@ function dscr_calc_shortcode() {
                 height: 100%;
                 background: #065f46;
                 width: 0%;
-                transition: width 0.1s ease-out;
+                pointer-events: none;
             }
 
             .dscr-range-handle-visual {
@@ -80,6 +80,7 @@ function dscr_calc_shortcode() {
                 gap: 3px;
                 pointer-events: none;
                 z-index: 2;
+                transition: left 0.1s ease-out;
             }
 
             .handle-line { width: 3px; height: 14px; background: #064e3b; border-radius: 2px; }
@@ -92,6 +93,7 @@ function dscr_calc_shortcode() {
                 width: 100%;
                 height: 100%;
                 z-index: 3;
+                margin: 0;
             }
 
             .dscr-num-box {
@@ -115,7 +117,7 @@ function dscr_calc_shortcode() {
                 align-items: center;
                 border-right: 1px solid #d1d5db;
                 font-size: 12px;
-                min-width: 45px;
+                min-width: 50px;
                 justify-content: center;
             }
 
@@ -130,6 +132,7 @@ function dscr_calc_shortcode() {
                 color: #111827;
                 outline: none;
                 box-shadow: none !important;
+                width: 100%;
             }
 
             /* RESULTS PANEL */
@@ -142,7 +145,7 @@ function dscr_calc_shortcode() {
                 top: 20px;
             }
 
-            .dscr-results h2 { text-align: center; margin-bottom: 24px; color: #fff; border:none; }
+            .dscr-results h2 { text-align: center; margin-bottom: 24px; color: #fff; border:none; margin-top:0;}
 
             .result-block { margin-bottom: 20px; }
             .result-label { font-size: 14px; color: #cbd5e1; margin-bottom: 6px; }
@@ -173,9 +176,32 @@ function dscr_calc_shortcode() {
                 font-size: 16px;
                 font-weight: 700;
                 cursor: pointer;
-                transition: opacity 0.2s;
+                transition: all 0.2s;
             }
+            .cta:disabled { opacity: 0.5; cursor: not-allowed; }
             .cta.secondary { background: #374151; }
+
+            /* Checkbox Styling */
+            .custom-check-row {
+                margin-top: 24px;
+                display: flex;
+                gap: 12px;
+                align-items: flex-start;
+                cursor: pointer;
+            }
+            #checkIcon {
+                background: #16a34a;
+                color: #fff;
+                border-radius: 6px;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                flex-shrink: 0;
+                transition: background 0.2s;
+            }
 
             @media (max-width: 900px) {
                 .dscr-container { grid-template-columns: 1fr; }
@@ -184,114 +210,46 @@ function dscr_calc_shortcode() {
         </style>
 
         <div class="dscr-container">
-            <!-- INPUTS -->
             <div class="dscr-inputs">
                 <h1>DSCR Rental Calculator</h1>
-                <p class="subtitle">Calculate your Debt Service Coverage Ratio in real-time.</p>
+                <p class="subtitle">Enter your property details below to see your ratio.</p>
 
-                <!-- Purchase Price -->
-                <div class="dscr-field-group" data-id="price">
-                    <label>Purchase Price</label>
+                <!-- Fields -->
+                <?php
+                $fields = [
+                    ['id' => 'price', 'label' => 'Purchase Price', 'prefix' => '$', 'min' => 50000, 'max' => 2000000, 'step' => 5000, 'val' => 300000],
+                    ['id' => 'down', 'label' => 'Down Payment', 'prefix' => '$', 'min' => 0, 'max' => 1000000, 'step' => 1000, 'val' => 60000],
+                    ['id' => 'rate', 'label' => 'Interest Rate (%)', 'prefix' => '%', 'min' => 1, 'max' => 15, 'step' => 0.1, 'val' => 7.5],
+                    ['id' => 'term', 'label' => 'Term Years', 'prefix' => 'Yrs', 'min' => 5, 'max' => 40, 'step' => 1, 'val' => 30],
+                    ['id' => 'taxes', 'label' => 'Annual Taxes', 'prefix' => '$', 'min' => 0, 'max' => 20000, 'step' => 100, 'val' => 2400],
+                    ['id' => 'insurance', 'label' => 'Annual Insurance', 'prefix' => '$', 'min' => 0, 'max' => 10000, 'step' => 50, 'val' => 1200],
+                    ['id' => 'hoa', 'label' => 'Annual HOA', 'prefix' => '$', 'min' => 0, 'max' => 12000, 'step' => 100, 'val' => 0],
+                    ['id' => 'rent', 'label' => 'Monthly Gross Rent', 'prefix' => '$', 'min' => 0, 'max' => 15000, 'step' => 100, 'val' => 3500],
+                ];
+
+                foreach ($fields as $f): ?>
+                <div class="dscr-field-group" data-id="<?php echo $f['id']; ?>">
+                    <label><?php echo $f['label']; ?></label>
                     <div class="dscr-control-row">
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual"><div class="handle-line"></div><div class="handle-line"></div></div>
-                            <input type="range" class="dscr-range-input" min="50000" max="2000000" step="5000" value="300000" />
+                            <div class="dscr-range-handle-visual">
+                                <div class="handle-line"></div>
+                                <div class="handle-line"></div>
+                            </div>
+                            <input type="range" class="dscr-range-input" 
+                                   min="<?php echo $f['min']; ?>" 
+                                   max="<?php echo $f['max']; ?>" 
+                                   step="<?php echo $f['step']; ?>" 
+                                   value="<?php echo $f['val']; ?>" />
                         </div>
-                        <div class="dscr-num-box"><span class="prefix">$</span><input type="number" value="300000" /></div>
+                        <div class="dscr-num-box">
+                            <span class="prefix"><?php echo $f['prefix']; ?></span>
+                            <input type="number" step="<?php echo $f['step']; ?>" value="<?php echo $f['val']; ?>" />
+                        </div>
                     </div>
                 </div>
-
-                <!-- Down Payment -->
-                <div class="dscr-field-group" data-id="down">
-                    <label>Down Payment</label>
-                    <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual"><div class="handle-line"></div><div class="handle-line"></div></div>
-                            <input type="range" class="dscr-range-input" min="0" max="1000000" step="1000" value="60000" />
-                        </div>
-                        <div class="dscr-num-box"><span class="prefix">$</span><input type="number" value="60000" /></div>
-                    </div>
-                </div>
-
-                <!-- Interest Rate -->
-                <div class="dscr-field-group" data-id="rate">
-                    <label>Interest Rate (%)</label>
-                    <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual"><div class="handle-line"></div><div class="handle-line"></div></div>
-                            <input type="range" class="dscr-range-input" min="1" max="15" step="0.1" value="7.5" />
-                        </div>
-                        <div class="dscr-num-box"><span class="prefix">%</span><input type="number" step="0.1" value="7.5" /></div>
-                    </div>
-                </div>
-
-                <!-- Term -->
-                <div class="dscr-field-group" data-id="term">
-                    <label>Term Years</label>
-                    <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual"><div class="handle-line"></div><div class="handle-line"></div></div>
-                            <input type="range" class="dscr-range-input" min="5" max="40" step="1" value="30" />
-                        </div>
-                        <div class="dscr-num-box"><span class="prefix">Yrs</span><input type="number" value="30" /></div>
-                    </div>
-                </div>
-
-                <!-- Taxes -->
-                <div class="dscr-field-group" data-id="taxes">
-                    <label>Annual Taxes</label>
-                    <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual"><div class="handle-line"></div><div class="handle-line"></div></div>
-                            <input type="range" class="dscr-range-input" min="0" max="20000" step="100" value="2400" />
-                        </div>
-                        <div class="dscr-num-box"><span class="prefix">$</span><input type="number" value="2400" /></div>
-                    </div>
-                </div>
-
-                <!-- Insurance -->
-                <div class="dscr-field-group" data-id="insurance">
-                    <label>Annual Insurance</label>
-                    <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual"><div class="handle-line"></div><div class="handle-line"></div></div>
-                            <input type="range" class="dscr-range-input" min="0" max="10000" step="50" value="1200" />
-                        </div>
-                        <div class="dscr-num-box"><span class="prefix">$</span><input type="number" value="1200" /></div>
-                    </div>
-                </div>
-
-                <!-- HOA -->
-                <div class="dscr-field-group" data-id="hoa">
-                    <label>Annual HOA</label>
-                    <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual"><div class="handle-line"></div><div class="handle-line"></div></div>
-                            <input type="range" class="dscr-range-input" min="0" max="12000" step="100" value="0" />
-                        </div>
-                        <div class="dscr-num-box"><span class="prefix">$</span><input type="number" value="0" /></div>
-                    </div>
-                </div>
-
-                <!-- Rent -->
-                <div class="dscr-field-group" data-id="rent">
-                    <label>Monthly Gross Rent</label>
-                    <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual"><div class="handle-line"></div><div class="handle-line"></div></div>
-                            <input type="range" class="dscr-range-input" min="0" max="15000" step="100" value="3500" />
-                        </div>
-                        <div class="dscr-num-box"><span class="prefix">$</span><input type="number" value="3500" /></div>
-                    </div>
-                </div>
+                <?php endforeach; ?>
             </div>
 
             <!-- RESULTS -->
@@ -328,13 +286,14 @@ function dscr_calc_shortcode() {
                     </div>
                 </div>
 
-                <label style="margin-top:24px; display:flex; gap:12px; align-items:flex-start; cursor:pointer;">
-                    <input type="checkbox" id="readyCheck" checked style="accent-color: #16a34a; width: 20px; height: 20px;" />
+                <div class="custom-check-row" id="checkWrapper">
+                    <input type="checkbox" id="readyCheck" checked style="display:none;" />
+                    <div id="checkIcon">✓</div>
                     <div>
-                        <strong>Ready to proceed?</strong><br />
-                        <span style="font-size: 13px; color: #cbd5e1;">Submit your details for a quote.</span>
+                        <strong>Looks good.</strong><br />
+                        <span style="font-size: 13px; color: #cbd5e1;">Ready to proceed with your application?</span>
                     </div>
-                </label>
+                </div>
 
                 <div class="cta-group">
                     <button class="cta secondary">Download PDF</button>
@@ -346,31 +305,43 @@ function dscr_calc_shortcode() {
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const groups = document.querySelectorAll('.dscr-field-group');
+        const app = document.getElementById('dscr-calculator-app');
+        const groups = app.querySelectorAll('.dscr-field-group');
         const vals = {
-            dscr: document.getElementById('val-dscr'),
-            loan: document.getElementById('val-loan'),
-            pi: document.getElementById('val-pi'),
-            pitia: document.getElementById('val-pitia')
+            dscr: app.querySelector('#val-dscr'),
+            loan: app.querySelector('#val-loan'),
+            pi: app.querySelector('#val-pi'),
+            pitia: app.querySelector('#val-pitia')
         };
-        const applyBtn = document.getElementById('applyBtn');
-        const readyCheck = document.getElementById('readyCheck');
+        const applyBtn = app.querySelector('#applyBtn');
+        const readyCheck = app.querySelector('#readyCheck');
+        const checkIcon = app.querySelector('#checkIcon');
+        const checkWrapper = app.querySelector('#checkWrapper');
 
         function formatCurrency(num) {
-            return '$' + new Float64Array([num])[0].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            return '$' + num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
 
-        function updateUI(groupId, value) {
-            const group = document.querySelector(`.dscr-field-group[data-id="${groupId}"]`);
+        function updateUI(groupId, value, source) {
+            const group = app.querySelector(`.dscr-field-group[data-id="${groupId}"]`);
             const range = group.querySelector('.dscr-range-input');
             const number = group.querySelector('input[type="number"]');
             const fill = group.querySelector('.dscr-range-fill');
             const handle = group.querySelector('.dscr-range-handle-visual');
 
-            range.value = value;
-            number.value = value;
+            // Sync the other input
+            if (source === 'range') {
+                number.value = value;
+            } else if (source === 'number') {
+                range.value = value;
+            }
 
-            const percent = ((value - range.min) / (range.max - range.min)) * 100;
+            // Calculate percentage for visual fill and handle
+            const min = parseFloat(range.min);
+            const max = parseFloat(range.max);
+            const clampedVal = Math.min(Math.max(parseFloat(value) || 0, min), max);
+            const percent = ((clampedVal - min) / (max - min)) * 100;
+            
             fill.style.width = percent + '%';
             handle.style.left = percent + '%';
 
@@ -378,20 +349,20 @@ function dscr_calc_shortcode() {
         }
 
         function calculate() {
-            const price = parseFloat(document.querySelector('[data-id="price"] input[type="number"]').value) || 0;
-            const down = parseFloat(document.querySelector('[data-id="down"] input[type="number"]').value) || 0;
-            const rate = parseFloat(document.querySelector('[data-id="rate"] input[type="number"]').value) || 0;
-            const term = parseFloat(document.querySelector('[data-id="term"] input[type="number"]').value) || 1;
-            const taxes = parseFloat(document.querySelector('[data-id="taxes"] input[type="number"]').value) || 0;
-            const insurance = parseFloat(document.querySelector('[data-id="insurance"] input[type="number"]').value) || 0;
-            const hoa = parseFloat(document.querySelector('[data-id="hoa"] input[type="number"]').value) || 0;
-            const rent = parseFloat(document.querySelector('[data-id="rent"] input[type="number"]').value) || 0;
+            const getVal = (id) => parseFloat(app.querySelector(`[data-id="${id}"] input[type="number"]`).value) || 0;
+            
+            const price = getVal('price');
+            const down = getVal('down');
+            const rate = getVal('rate');
+            const term = getVal('term') || 1;
+            const taxes = getVal('taxes');
+            const insurance = getVal('insurance');
+            const hoa = getVal('hoa');
+            const rent = getVal('rent');
 
-            // 1. Loan Amount
             const loanAmount = Math.max(0, price - down);
             vals.loan.textContent = '$' + loanAmount.toLocaleString();
 
-            // 2. Monthly P&I
             let monthlyPI = 0;
             if (loanAmount > 0) {
                 const monthlyRate = (rate / 100) / 12;
@@ -404,25 +375,16 @@ function dscr_calc_shortcode() {
             }
             vals.pi.textContent = formatCurrency(monthlyPI);
 
-            // 3. PITIA
-            const monthlyTaxes = taxes / 12;
-            const monthlyIns = insurance / 12;
-            const monthlyHOA = hoa / 12;
-            const pitia = monthlyPI + monthlyTaxes + monthlyIns + monthlyHOA;
+            const pitia = monthlyPI + (taxes / 12) + (insurance / 12) + (hoa / 12);
             vals.pitia.textContent = formatCurrency(pitia);
 
-            // 4. DSCR Calculation
-            // Formula: DSCR = Monthly Gross Rent / PITIA
-            let dscr = 0;
-            if (pitia > 0) {
-                dscr = rent / pitia;
-            }
+            let dscr = pitia > 0 ? rent / pitia : 0;
             vals.dscr.textContent = dscr.toFixed(2);
             
-            // Visual Color Coding for DSCR
-            if (dscr >= 1.2) vals.dscr.style.color = '#22c55e'; // Good green
-            else if (dscr >= 1.0) vals.dscr.style.color = '#eab308'; // Warning yellow
-            else vals.dscr.style.color = '#ef4444'; // Bad red
+            // DSCR Status Color
+            if (dscr >= 1.25) vals.dscr.style.color = '#22c55e';
+            else if (dscr >= 1.0) vals.dscr.style.color = '#eab308';
+            else vals.dscr.style.color = '#ef4444';
         }
 
         groups.forEach(group => {
@@ -430,18 +392,30 @@ function dscr_calc_shortcode() {
             const number = group.querySelector('input[type="number"]');
             const id = group.dataset.id;
 
-            range.addEventListener('input', (e) => updateUI(id, e.target.value));
-            number.addEventListener('input', (e) => updateUI(id, e.target.value));
+            range.addEventListener('input', (e) => updateUI(id, e.target.value, 'range'));
+            number.addEventListener('input', (e) => updateUI(id, e.target.value, 'number'));
             
-            // Initialize positions
-            updateUI(id, range.value);
+            // Initialize
+            updateUI(id, range.value, 'range');
         });
 
-        readyCheck.addEventListener('change', () => {
-            applyBtn.disabled = !readyCheck.checked;
-            applyBtn.style.opacity = readyCheck.checked ? '1' : '0.5';
-        });
+        // Custom Checkbox Toggle
+        function toggleCheck() {
+            readyCheck.checked = !readyCheck.checked;
+            if (readyCheck.checked) {
+                checkIcon.textContent = '✓';
+                checkIcon.style.background = '#16a34a';
+                applyBtn.disabled = false;
+            } else {
+                checkIcon.textContent = '';
+                checkIcon.style.background = '#9ca3af';
+                applyBtn.disabled = true;
+            }
+        }
 
+        checkWrapper.addEventListener('click', toggleCheck);
+        
+        // Final init
         calculate();
     });
     </script>
