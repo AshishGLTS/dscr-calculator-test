@@ -46,6 +46,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const max = parseFloat(range.max);
         const clampedVal = Math.min(Math.max(parseFloat(value) || 0, min), max);
         
+        // Check if value is at minimum (zero or minimum value)
+        const isAtMinimum = clampedVal === min;
+        
+        // Toggle has-value class to show/hide pause icon vs lines
+        if (isAtMinimum) {
+            wrapper.classList.remove('has-value');
+        } else {
+            wrapper.classList.add('has-value');
+        }
+        
         // Calculate percentage (0 to 100)
         let percent = 0;
         if (max > min) {
@@ -55,13 +65,24 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clamp percent to valid range (0-100)
         percent = Math.max(0, Math.min(100, percent));
         
-        // Update fill width - fill extends to where the handle center should be
-        fill.style.width = percent + '%';
+        // Get wrapper dimensions for positioning
+        const wrapperWidth = wrapper.offsetWidth;
+        const padding = 19; // left and right padding
+        const innerWidth = wrapperWidth - (padding * 2);
         
-        // Update handle position
-        // The handle uses transform: translate(-50%) to center itself
-        // So left: 0% means handle center at left edge, left: 100% means handle center at right edge
-        handle.style.left = percent + '%';
+        if (isAtMinimum) {
+            // At minimum: position handle at left edge (19px from wrapper left)
+            handle.style.left = padding + 'px';
+            fill.style.width = '0%';
+        } else {
+            // Update fill width - fill extends to where the handle center should be
+            const fillWidth = (percent / 100) * innerWidth;
+            fill.style.width = fillWidth + 'px';
+            
+            // Update handle position - account for padding
+            const handleLeft = padding + (percent / 100) * innerWidth;
+            handle.style.left = handleLeft + 'px';
+        }
 
         calculate();
     }

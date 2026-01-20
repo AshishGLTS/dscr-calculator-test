@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DSCR Rental Calculator Test
  * Description: A real-time Debt Service Coverage Ratio (DSCR) calculator for real estate investors.
- * Version: 1.2.2
+ * Version: 1.2.3
  * Author: GLTS
  */
 
@@ -80,35 +80,69 @@ function dscr_calc_shortcode() {
                 border: 1px solid #d1d5db;
                 border-radius: 10px;
                 position: relative;
-                overflow: hidden;
+                overflow: visible;
+                padding: 0 19px;
+                box-sizing: border-box;
             }
 
             .dscr-range-fill {
-                height: 100%;
+                height: calc(100% - 8px);
                 background: #065f46;
                 width: 0%;
                 pointer-events: none;
                 border-radius: 6px;
+                position: absolute;
+                left: 19px;
+                top: 4px;
+                min-width: 0;
             }
 
             .dscr-range-handle-visual {
                 position: absolute;
                 top: 50%;
                 left: 0%;
-                transform: translate(calc(-50% - 23px), -50%);
-                height: 32px;
-                width: 38px;
-                background: #61977c;
-                border-radius: 6px;
+                transform: translate(-50%, -50%);
+                height: 40px;
+                width: 40px;
+                background: #0b6e3d;
+                border-radius: 8px;
                 display: flex;
                 justify-content: center;
                 align-items: center;
                 gap: 3px;
                 pointer-events: none;
                 z-index: 2;
-                transition: left 0.05s linear;
+                transition: left 0.05s linear, background 0.2s, height 0.2s, width 0.2s;
                 box-sizing: border-box;
                 will-change: left;
+            }
+
+            .dscr-range-wrapper.has-value .dscr-range-handle-visual {
+                height: 32px;
+                width: 38px;
+                background: #61977c;
+                border-radius: 6px;
+            }
+
+            .handle-pause-icon {
+                display: none;
+            }
+
+            .dscr-range-wrapper:not(.has-value) .handle-pause-icon {
+                display: block;
+            }
+
+            .dscr-range-wrapper:not(.has-value) .handle-line {
+                display: none;
+            }
+
+            .dscr-range-wrapper.has-value .handle-pause-icon {
+                display: none;
+            }
+
+            .handle-pause-icon svg {
+                width: 12px;
+                height: 12px;
             }
 
             .handle-line { 
@@ -349,6 +383,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -356,11 +396,11 @@ function dscr_calc_shortcode() {
                                    min="0" 
                                    max="5000000" 
                                    step="5000" 
-                                   value="300000" />
+                                   value="0" />
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
-                            <input type="number" step="5000" value="300000" />
+                            <input type="number" step="5000" value="0" />
                         </div>
                     </div>
                 </div>
@@ -371,6 +411,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -393,6 +439,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -400,11 +452,11 @@ function dscr_calc_shortcode() {
                                    min="0" 
                                    max="100" 
                                    step="1" 
-                                   value="80" />
+                                   value="0" />
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">%</span>
-                            <input type="number" step="1" value="80" />
+                            <input type="number" step="1" value="0" />
                         </div>
                     </div>
                 </div>
@@ -415,6 +467,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -422,11 +480,11 @@ function dscr_calc_shortcode() {
                                    min="1" 
                                    max="15" 
                                    step="0.1" 
-                                   value="7.5" />
+                                   value="1" />
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">%</span>
-                            <input type="number" step="0.1" value="7.5" />
+                            <input type="number" step="0.1" value="1" />
                         </div>
                     </div>
                 </div>
@@ -437,6 +495,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -444,11 +508,11 @@ function dscr_calc_shortcode() {
                                    min="5" 
                                    max="40" 
                                    step="1" 
-                                   value="30" />
+                                   value="5" />
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">Yrs</span>
-                            <input type="number" step="1" value="30" />
+                            <input type="number" step="1" value="5" />
                         </div>
                     </div>
                 </div>
@@ -459,6 +523,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -481,6 +551,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -503,6 +579,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -510,11 +592,11 @@ function dscr_calc_shortcode() {
                                    min="0" 
                                    max="50000" 
                                    step="100" 
-                                   value="3500" />
+                                   value="0" />
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
-                            <input type="number" step="100" value="3500" />
+                            <input type="number" step="100" value="0" />
                         </div>
                     </div>
                 </div>
@@ -525,6 +607,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -532,11 +620,11 @@ function dscr_calc_shortcode() {
                                    min="0" 
                                    max="20" 
                                    step="0.5" 
-                                   value="5" />
+                                   value="0" />
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">%</span>
-                            <input type="number" step="0.5" value="5" />
+                            <input type="number" step="0.5" value="0" />
                         </div>
                     </div>
                 </div>
@@ -547,6 +635,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -554,11 +648,11 @@ function dscr_calc_shortcode() {
                                    min="0" 
                                    max="50000" 
                                    step="100" 
-                                   value="2400" />
+                                   value="0" />
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
-                            <input type="number" step="100" value="2400" />
+                            <input type="number" step="100" value="0" />
                         </div>
                     </div>
                 </div>
@@ -569,6 +663,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -576,11 +676,11 @@ function dscr_calc_shortcode() {
                                    min="0" 
                                    max="20000" 
                                    step="50" 
-                                   value="1200" />
+                                   value="0" />
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
-                            <input type="number" step="50" value="1200" />
+                            <input type="number" step="50" value="0" />
                         </div>
                     </div>
                 </div>
@@ -591,6 +691,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -613,6 +719,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -620,11 +732,11 @@ function dscr_calc_shortcode() {
                                    min="0" 
                                    max="5000" 
                                    step="50" 
-                                   value="500" />
+                                   value="0" />
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
-                            <input type="number" step="50" value="500" />
+                            <input type="number" step="50" value="0" />
                         </div>
                     </div>
                 </div>
@@ -635,6 +747,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -657,6 +775,12 @@ function dscr_calc_shortcode() {
                         <div class="dscr-range-wrapper">
                             <div class="dscr-range-fill"></div>
                             <div class="dscr-range-handle-visual">
+                                <div class="handle-pause-icon">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
+                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
+                                    </svg>
+                                </div>
                                 <div class="handle-line"></div>
                                 <div class="handle-line"></div>
                             </div>
@@ -789,6 +913,16 @@ function dscr_calc_shortcode() {
             const max = parseFloat(range.max);
             const clampedVal = Math.min(Math.max(parseFloat(value) || 0, min), max);
             
+            // Check if value is at minimum (zero or minimum value)
+            const isAtMinimum = clampedVal === min;
+            
+            // Toggle has-value class to show/hide pause icon vs lines
+            if (isAtMinimum) {
+                wrapper.classList.remove('has-value');
+            } else {
+                wrapper.classList.add('has-value');
+            }
+            
             // Calculate percentage (0 to 100)
             let percent = 0;
             if (max > min) {
@@ -798,13 +932,24 @@ function dscr_calc_shortcode() {
             // Clamp percent to valid range (0-100)
             percent = Math.max(0, Math.min(100, percent));
             
-            // Update fill width - fill extends to where the handle center should be
-            fill.style.width = percent + '%';
+            // Get wrapper dimensions for positioning
+            const wrapperWidth = wrapper.offsetWidth;
+            const padding = 19; // left and right padding
+            const innerWidth = wrapperWidth - (padding * 2);
             
-            // Update handle position
-            // The handle uses transform: translate(-50%) to center itself
-            // So left: 0% means handle center at left edge, left: 100% means handle center at right edge
-            handle.style.left = percent + '%';
+            if (isAtMinimum) {
+                // At minimum: position handle at left edge (19px from wrapper left)
+                handle.style.left = padding + 'px';
+                fill.style.width = '0%';
+            } else {
+                // Update fill width - fill extends to where the handle center should be
+                const fillWidth = (percent / 100) * innerWidth;
+                fill.style.width = fillWidth + 'px';
+                
+                // Update handle position - account for padding
+                const handleLeft = padding + (percent / 100) * innerWidth;
+                handle.style.left = handleLeft + 'px';
+            }
 
             calculate();
         }

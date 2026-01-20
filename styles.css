@@ -63,36 +63,69 @@ body {
     border: 1px solid #d1d5db;
     border-radius: 10px;
     position: relative;
-    overflow: hidden;
-    
+    overflow: visible;
+    padding: 0 19px;
+    box-sizing: border-box;
 }
 
 .dscr-range-fill {
-    height: 100%;
+    height: calc(100% - 8px);
     background: #065f46;
     width: 0%;
     pointer-events: none;
     border-radius: 6px;
+    position: absolute;
+    left: 19px;
+    top: 4px;
+    min-width: 0;
 }
 
 .dscr-range-handle-visual {
     position: absolute;
     top: 50%;
     left: 0%;
-    transform: translate(calc(-50% - 23px), -50%);
-    height: 32px;
-    width: 38px;
-    background: #61977c;
-    border-radius: 6px;
+    transform: translate(-50%, -50%);
+    height: 30px;
+    width: 40px;
+    background: #0b6e3d;
+    border-radius: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 3px;
     pointer-events: none;
     z-index: 2;
-    transition: left 0.05s linear;
+    transition: left 0.05s linear, background 0.2s, height 0.2s, width 0.2s;
     box-sizing: border-box;
     will-change: left;
+}
+
+.dscr-range-wrapper.has-value .dscr-range-handle-visual {
+    height: 30px;
+    width: 38px;
+    background: #61977c;
+    border-radius: 6px;
+}
+
+.handle-pause-icon {
+    display: none;
+}
+
+.dscr-range-wrapper:not(.has-value) .handle-pause-icon {
+    display: block;
+}
+
+.dscr-range-wrapper:not(.has-value) .handle-line {
+    display: none;
+}
+
+.dscr-range-wrapper.has-value .handle-pause-icon {
+    display: none;
+}
+
+.handle-pause-icon svg {
+    width: 12px;
+    height: 12px;
 }
 
 .handle-line { 
@@ -166,7 +199,7 @@ body {
     align-items: center;
     border-right: 1px solid #d1d5db;
     font-size: 12px;
-    min-width: 50px;
+    min-width: 20px;
     justify-content: center;
 }
 
