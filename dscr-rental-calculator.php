@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DSCR Rental Calculator Test
  * Description: A real-time Debt Service Coverage Ratio (DSCR) calculator for real estate investors.
- * Version: 1.2.3
+ * Version: 1.2.4
  * Author: GLTS
  */
 
@@ -102,7 +102,7 @@ function dscr_calc_shortcode() {
                 top: 50%;
                 left: 0%;
                 transform: translate(-50%, -50%);
-                height: 40px;
+                height: 30px;
                 width: 40px;
                 background: #0b6e3d;
                 border-radius: 8px;
@@ -118,7 +118,7 @@ function dscr_calc_shortcode() {
             }
 
             .dscr-range-wrapper.has-value .dscr-range-handle-visual {
-                height: 32px;
+                height: 30px;
                 width: 38px;
                 background: #61977c;
                 border-radius: 6px;
