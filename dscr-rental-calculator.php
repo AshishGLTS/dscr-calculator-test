@@ -856,7 +856,7 @@ function dscr_calc_shortcode() {
                 </div>
 
                 <div class="cta-group">
-                    <button class="cta secondary">Download PDF</button>
+                    <button class="cta secondary" id="downloadPdfBtn">Download PDF</button>
                     <button class="cta" id="applyBtn">Apply Now</button>
                 </div>
             </div>
@@ -1137,29 +1137,115 @@ function dscr_calc_shortcode() {
         
         // PDF Download Function
         function downloadPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+            // Check if jsPDF is loaded
+            if (!window.jspdf) {
+                alert('PDF library not loaded. Please refresh the page and try again.');
+                console.error('jsPDF library not found');
+                return;
+            }
             
-            // Title
-            doc.setFontSize(20);
-            doc.text('DSCR Rental Calculator Report', 105, 20, { align: 'center' });
+            // Check if calculated values exist
+            if (!calculatedValues || Object.keys(calculatedValues).length === 0) {
+                alert('Please calculate values first before downloading PDF.');
+                console.error('No calculated values available');
+                return;
+            }
             
-            // Date
-            doc.setFontSize(10);
-            doc.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' });
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
             
-            let yPos = 45;
-            const lineHeight = 8;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
             const leftMargin = 20;
-            const rightMargin = 190;
+            const rightMargin = pageWidth - 20;
             
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text('CALCULATED RESULTS', leftMargin, yPos);
-            yPos += lineHeight + 5;
+            // Colors matching Express Capital Financing logo
+            const primaryColor = [34, 139, 34]; // Dark green (matching logo)
+            const highlightColor = [255, 193, 7]; // Gold/Mustard yellow (matching logo)
+            const yellow = [255, 235, 59]; // #FFEB3B
+            const green = [16, 163, 74]; // #10a34a
+            const darkGreen = [5, 95, 70]; // #065f46
+            const darkGray = [31, 41, 55]; // #1f2937
+            const textColor = [51, 51, 51];
+            const lightGray = [245, 245, 245];
+            const white = [255, 255, 255];
+            
+            let yPos = 20;
+            
+            // Header with company branding - Light background
+            const lightBgColor = [248, 249, 250]; // Light gray background
+            doc.setFillColor(...lightBgColor);
+            doc.rect(0, 0, pageWidth, 80, 'F');
+            
+            // Add border line at bottom of header
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.5);
+            doc.line(10, 80, pageWidth - 10, 80);
+            
+            // Logo on left side
+            const logoX = 15;
+            const logoY = 15;
+            const logoWidth = 70;
+            const logoHeight = 25;
+            
+            // Fallback: Text-based logo if image not available
+            function addTextLogo() {
+                doc.setFontSize(18);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...primaryColor); // Dark green
+                doc.text('EXPRESS', logoX, logoY + 8);
+                doc.setFontSize(16);
+                doc.text('CAPITAL', logoX, logoY + 18);
+                doc.setFontSize(14);
+                doc.setTextColor(100, 100, 100); // Dark gray
+                doc.text('FINANCING', logoX, logoY + 28);
+            }
+            
+            // Use text logo for now (can be replaced with image logo later)
+            addTextLogo();
+            
+            // Contact information on right side
+            const contactX = rightMargin;
+            const contactY = 15;
             
             doc.setFontSize(10);
-            doc.setFont(undefined, 'normal');
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...textColor);
+            doc.text('Contact Information', contactX, contactY, { align: 'right' });
+            
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Phone: (718) 285-0806', contactX, contactY + 8, { align: 'right' });
+            doc.text('Email: info@expresscapitalfinancing.com', contactX, contactY + 15, { align: 'right' });
+            
+            // Office addresses
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text('New York Office:', contactX, contactY + 25, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.text('14 53rd St, #408N', contactX, contactY + 31, { align: 'right' });
+            doc.text('Brooklyn, NY 11232', contactX, contactY + 37, { align: 'right' });
+            
+            yPos = 90;
+            
+            // Yellow Title Bar
+            doc.setFillColor(...highlightColor);
+            doc.rect(0, yPos - 8, pageWidth, 12, 'F');
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text('DSCR Rental Calculator Report', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 8;
+            
+            // Generated Date
+            doc.setFillColor(255, 255, 255);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Generated on: ${new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}`, leftMargin, yPos);
+            yPos += 10;
             
             // Format helper
             const formatValue = (val, isPercent = false, isCurrency = true) => {
@@ -1172,68 +1258,250 @@ function dscr_calc_shortcode() {
                 }
             };
             
-            // Get input values for formula display
+            // Key Results Section (Yellow Background)
+            const keyResultsY = yPos;
+            doc.setFillColor(...yellow);
+            doc.rect(leftMargin, keyResultsY, pageWidth - (leftMargin * 2), 35, 'F');
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Key Results', leftMargin + 5, keyResultsY + 8);
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            let keyX = leftMargin + 5;
+            let keyY = keyResultsY + 18;
+            
+            // Key metrics in green text
+            doc.setTextColor(...darkGreen);
+            doc.setFont(undefined, 'bold');
+            doc.text(`DSCR: ${calculatedValues.dscr.toFixed(2)}`, keyX, keyY);
+            doc.text(`Cash on Cash Return: ${formatValue(calculatedValues.cashOnCashReturn, true, false)}`, keyX + 60, keyY);
+            doc.text(`Cap Rate: ${formatValue(calculatedValues.capRate, true, false)}`, keyX + 120, keyY);
+            keyY += 8;
+            doc.text(`Net Monthly Cashflow: ${formatValue(calculatedValues.netMonthlyCashflow)}`, keyX, keyY);
+            doc.text(`Cash Needed to Close: ${formatValue(calculatedValues.cashNeededToClose)}`, keyX + 60, keyY);
+            doc.text(`Net Operating Income: ${formatValue(calculatedValues.netOperatingIncome)}`, keyX + 120, keyY);
+            
+            yPos = keyResultsY + 45;
+            
+            // Financial Breakdown Section (Green Header)
+            doc.setFillColor(...green);
+            doc.rect(leftMargin, yPos, pageWidth - (leftMargin * 2), 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text('Financial Breakdown', leftMargin + 5, yPos + 6);
+            yPos += 12;
+            
+            // Get input values
             const getInputVal = (id) => parseFloat(app.querySelector(`[data-id="${id}"] input[type="number"]`).value) || 0;
             const inputPrice = getInputVal('price');
+            const inputUnits = getInputVal('units') || 1;
             const inputLTV = getInputVal('ltv');
             
-            // Results
-            const results = [
+            doc.setFillColor(255, 255, 255);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            
+            const financialData = [
+                ['Purchase Price', formatValue(inputPrice)],
+                ['Number of Units', inputUnits.toString()],
                 ['Price per Unit', formatValue(calculatedValues.pricePerUnit)],
+                ['LTV (%)', inputLTV + '%'],
                 ['Loan Amount', formatValue(calculatedValues.loanAmount), `Formula: Purchase Price × LTV = $${inputPrice.toLocaleString()} × ${inputLTV}%`],
                 ['Down Payment', formatValue(calculatedValues.downPayment)],
                 ['Monthly Payment (P&I)', formatValue(calculatedValues.monthlyPI)],
                 ['PITIA', formatValue(calculatedValues.pitia)],
                 ['Annual Mortgage Payment', formatValue(calculatedValues.annualMortgagePayment), 'Formula: PITIA × 12'],
                 ['Origination Fee Amount', formatValue(calculatedValues.originationFeeAmount)],
+                ['Loan Closing Fees', formatValue(getInputVal('closing-fees'))],
+                ['3rd Party Closing Cost', formatValue(getInputVal('third-party'))],
+                ['Total Closing Cost', formatValue(calculatedValues.totalClosingCost)],
+                ['Cash Needed to Close', formatValue(calculatedValues.cashNeededToClose)]
+            ];
+            
+            financialData.forEach(([label, value, formula]) => {
+                if (yPos > pageHeight - 40) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.setTextColor(...darkGreen);
+                doc.setFont(undefined, 'bold');
+                doc.text(label + ':', leftMargin + 5, yPos);
+                doc.setTextColor(0, 0, 0);
+                doc.setFont(undefined, 'normal');
+                doc.text(value, rightMargin - 5, yPos, { align: 'right' });
+                yPos += 7;
+                
+                if (formula) {
+                    doc.setFontSize(7);
+                    doc.setFont(undefined, 'italic');
+                    doc.setTextColor(100, 100, 100);
+                    doc.text(formula, leftMargin + 10, yPos, { maxWidth: 140 });
+                    yPos += 6;
+                    doc.setFontSize(9);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(0, 0, 0);
+                }
+            });
+            
+            yPos += 5;
+            
+            // Rental Income Section (Green Header)
+            if (yPos > pageHeight - 60) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            doc.setFillColor(...green);
+            doc.rect(leftMargin, yPos, pageWidth - (leftMargin * 2), 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text('Rental Income & Expenses', leftMargin + 5, yPos + 6);
+            yPos += 12;
+            
+            doc.setFillColor(255, 255, 255);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            
+            const rentalData = [
                 ['Gross Monthly Rental Income', formatValue(calculatedValues.grossMonthlyRentalIncome)],
                 ['Annual Rental Income', formatValue(calculatedValues.annualRentalIncome), 'Formula: Gross Monthly Rental Income × 12'],
+                ['Vacancy Rate (%)', getInputVal('vacancy') + '%'],
                 ['Vacancy Deduction', formatValue(calculatedValues.vacancyDeduction), 'Formula: Annual Rental Income × Vacancy Rate'],
                 ['Net Effective Rent', formatValue(calculatedValues.netEffectiveRent), 'Formula: Annual Rental Income - Vacancy Deduction'],
+                ['Property Taxes', formatValue(getInputVal('taxes'))],
+                ['Insurance', formatValue(getInputVal('insurance'))],
                 ['Taxes and Insurance', formatValue(calculatedValues.taxesAndInsurance)],
+                ['Monthly HOA', formatValue(getInputVal('hoa'))],
                 ['Annual HOA', formatValue(calculatedValues.annualHOA)],
                 ['Annual Repairs and Maintenance', formatValue(calculatedValues.annualRepair)],
-                ['Annual Utilities', formatValue(calculatedValues.annualUtilities)],
+                ['Annual Utilities', formatValue(calculatedValues.annualUtilities)]
+            ];
+            
+            rentalData.forEach(([label, value, formula]) => {
+                if (yPos > pageHeight - 40) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.setTextColor(...darkGreen);
+                doc.setFont(undefined, 'bold');
+                doc.text(label + ':', leftMargin + 5, yPos);
+                doc.setTextColor(0, 0, 0);
+                doc.setFont(undefined, 'normal');
+                doc.text(value, rightMargin - 5, yPos, { align: 'right' });
+                yPos += 7;
+                
+                if (formula) {
+                    doc.setFontSize(7);
+                    doc.setFont(undefined, 'italic');
+                    doc.setTextColor(100, 100, 100);
+                    doc.text(formula, leftMargin + 10, yPos, { maxWidth: 140 });
+                    yPos += 6;
+                    doc.setFontSize(9);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(0, 0, 0);
+                }
+            });
+            
+            yPos += 5;
+            
+            // Operating Results Section (Green Header)
+            if (yPos > pageHeight - 60) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            doc.setFillColor(...green);
+            doc.rect(leftMargin, yPos, pageWidth - (leftMargin * 2), 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text('Operating Results', leftMargin + 5, yPos + 6);
+            yPos += 12;
+            
+            doc.setFillColor(255, 255, 255);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            
+            const operatingData = [
                 ['Operating Expenses', formatValue(calculatedValues.operatingExpenses), 'Formula: (Taxes and Insurance + Annual HOA + Annual Repairs and Maint + Annual Utilities) + (Monthly Payment (P&I) × 12)'],
                 ['Net Operating Income', formatValue(calculatedValues.netOperatingIncome), 'Formula: Net Effective Rent - Operating Expenses'],
                 ['Net Monthly Cashflow', formatValue(calculatedValues.netMonthlyCashflow), 'Formula: Net Operating Income / 12'],
                 ['Cap Rate', formatValue(calculatedValues.capRate, true, false), 'Formula: Net Operating Income / Purchase Price (%)'],
                 ['Cash on Cash Return', formatValue(calculatedValues.cashOnCashReturn, true, false), 'Formula: Net Operating Income / Cash Needed to Close (%)'],
-                ['DSCR', calculatedValues.dscr.toFixed(2), 'Formula: (Net Effective Rent / 12) / PITIA'],
-                ['Total Closing Cost', formatValue(calculatedValues.totalClosingCost)],
-                ['Cash Needed to Close', formatValue(calculatedValues.cashNeededToClose)]
+                ['DSCR', calculatedValues.dscr.toFixed(2), 'Formula: (Net Effective Rent / 12) / PITIA']
             ];
             
-            results.forEach(([label, value, formula]) => {
-                if (yPos > 270) {
+            operatingData.forEach(([label, value, formula]) => {
+                if (yPos > pageHeight - 40) {
                     doc.addPage();
                     yPos = 20;
                 }
+                doc.setTextColor(...darkGreen);
                 doc.setFont(undefined, 'bold');
-                doc.text(label + ':', leftMargin, yPos);
+                doc.text(label + ':', leftMargin + 5, yPos);
+                doc.setTextColor(0, 0, 0);
                 doc.setFont(undefined, 'normal');
-                doc.text(value, rightMargin, yPos, { align: 'right' });
-                yPos += lineHeight;
+                doc.text(value, rightMargin - 5, yPos, { align: 'right' });
+                yPos += 7;
                 
-                // Add formula if provided
                 if (formula) {
-                    doc.setFontSize(8);
+                    doc.setFontSize(7);
                     doc.setFont(undefined, 'italic');
-                    doc.text(formula, leftMargin + 5, yPos, { maxWidth: 150 });
-                    yPos += lineHeight;
-                    doc.setFontSize(10);
+                    doc.setTextColor(100, 100, 100);
+                    doc.text(formula, leftMargin + 10, yPos, { maxWidth: 140 });
+                    yPos += 6;
+                    doc.setFontSize(9);
                     doc.setFont(undefined, 'normal');
+                    doc.setTextColor(0, 0, 0);
                 }
             });
             
-            // Save PDF
-            doc.save('DSCR_Calculator_Report.pdf');
+            // Footer on last page
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                
+                // Disclaimer
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.setFont(undefined, 'italic');
+                const disclaimer = 'Disclaimer: This calculator provides estimates only. Consult with financial and real estate professionals before making investment decisions.';
+                doc.text(disclaimer, pageWidth / 2, pageHeight - 15, { align: 'center', maxWidth: pageWidth - 40 });
+                
+                // Page number
+                doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+            }
+            
+                // Save PDF
+                doc.save('DSCR_Calculator_Report.pdf');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF: ' + error.message);
+            }
         }
         
         // Add PDF download button event
-        const pdfBtn = app.querySelector('.cta.secondary');
+        const pdfBtn = app.querySelector('#downloadPdfBtn') || app.querySelector('.cta.secondary');
         if (pdfBtn) {
-            pdfBtn.addEventListener('click', downloadPDF);
+            pdfBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('PDF button clicked');
+                try {
+                    downloadPDF();
+                } catch (error) {
+                    console.error('Error generating PDF:', error);
+                    alert('Error generating PDF. Please check the console for details.');
+                }
+            });
+        } else {
+            console.error('PDF button not found');
         }
         
         // Final init

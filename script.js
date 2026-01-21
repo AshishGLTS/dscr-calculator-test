@@ -268,105 +268,385 @@ document.addEventListener('DOMContentLoaded', function() {
 
     checkWrapper.addEventListener('click', toggleCheck);
     
+    // Function to load logo image and convert to base64
+    function loadLogoImage(logoUrl) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            img.onload = function() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const imgData = canvas.toDataURL('image/png');
+                    resolve(imgData);
+                } catch (e) {
+                    console.error('Error converting logo to base64:', e);
+                    reject(e);
+                }
+            };
+            
+            img.onerror = function() {
+                console.warn('Logo image failed to load from:', logoUrl);
+                reject(new Error('Logo image not found'));
+            };
+            
+            img.src = logoUrl;
+        });
+    }
+    
     // PDF Download Function
     function downloadPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        // Check if jsPDF is loaded
+        if (!window.jspdf) {
+            alert('PDF library not loaded. Please refresh the page and try again.');
+            console.error('jsPDF library not found');
+            return;
+        }
         
-        // Title
-        doc.setFontSize(20);
-        doc.text('DSCR Rental Calculator Report', 105, 20, { align: 'center' });
+        // Check if calculated values exist
+        if (!calculatedValues || Object.keys(calculatedValues).length === 0) {
+            alert('Please calculate values first before downloading PDF.');
+            console.error('No calculated values available');
+            return;
+        }
         
-        // Date
-        doc.setFontSize(10);
-        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' });
+        // Get logo URL (you can customize this path)
+        const logoUrl = 'assets/images/logo.png'; // Update this path to your logo
         
-        let yPos = 45;
-        const lineHeight = 8;
-        const leftMargin = 20;
-        const rightMargin = 190;
-        
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text('CALCULATED RESULTS', leftMargin, yPos);
-        yPos += lineHeight + 5;
-        
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        
-        // Format helper
-        const formatValue = (val, isPercent = false, isCurrency = true) => {
-            if (isCurrency) {
-                return '$' + val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            } else if (isPercent) {
-                return val.toFixed(2) + '%';
-            } else {
-                return val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            }
-        };
-        
-        // Get input values for formula display
-        const getInputVal = (id) => parseFloat(app.querySelector(`[data-id="${id}"] input[type="number"]`).value) || 0;
-        const inputPrice = getInputVal('price');
-        const inputLTV = getInputVal('ltv');
-        
-        // Results
-        const results = [
-            ['Price per Unit', formatValue(calculatedValues.pricePerUnit)],
-            ['Loan Amount', formatValue(calculatedValues.loanAmount), `Formula: Purchase Price × LTV = $${inputPrice.toLocaleString()} × ${inputLTV}%`],
-            ['Down Payment', formatValue(calculatedValues.downPayment)],
-            ['Monthly Payment (P&I)', formatValue(calculatedValues.monthlyPI)],
-            ['PITIA', formatValue(calculatedValues.pitia)],
-            ['Annual Mortgage Payment', formatValue(calculatedValues.annualMortgagePayment), 'Formula: PITIA × 12'],
-            ['Origination Fee Amount', formatValue(calculatedValues.originationFeeAmount)],
-            ['Gross Monthly Rental Income', formatValue(calculatedValues.grossMonthlyRentalIncome)],
-            ['Annual Rental Income', formatValue(calculatedValues.annualRentalIncome), 'Formula: Gross Monthly Rental Income × 12'],
-            ['Vacancy Deduction', formatValue(calculatedValues.vacancyDeduction), 'Formula: Annual Rental Income × Vacancy Rate'],
-            ['Net Effective Rent', formatValue(calculatedValues.netEffectiveRent), 'Formula: Annual Rental Income - Vacancy Deduction'],
-            ['Taxes and Insurance', formatValue(calculatedValues.taxesAndInsurance)],
-            ['Annual HOA', formatValue(calculatedValues.annualHOA)],
-            ['Annual Repairs and Maintenance', formatValue(calculatedValues.annualRepair)],
-            ['Annual Utilities', formatValue(calculatedValues.annualUtilities)],
-            ['Operating Expenses', formatValue(calculatedValues.operatingExpenses), 'Formula: (Taxes and Insurance + Annual HOA + Annual Repairs and Maint + Annual Utilities) + (Monthly Payment (P&I) × 12)'],
-            ['Net Operating Income', formatValue(calculatedValues.netOperatingIncome), 'Formula: Net Effective Rent - Operating Expenses'],
-            ['Net Monthly Cashflow', formatValue(calculatedValues.netMonthlyCashflow), 'Formula: Net Operating Income / 12'],
-            ['Cap Rate', formatValue(calculatedValues.capRate, true, false), 'Formula: Net Operating Income / Purchase Price (%)'],
-            ['Cash on Cash Return', formatValue(calculatedValues.cashOnCashReturn, true, false), 'Formula: Net Operating Income / Cash Needed to Close (%)'],
-            ['DSCR', calculatedValues.dscr.toFixed(2), 'Formula: (Net Effective Rent / 12) / PITIA'],
-            ['Total Closing Cost', formatValue(calculatedValues.totalClosingCost)],
-            ['Cash Needed to Close', formatValue(calculatedValues.cashNeededToClose)]
-        ];
-        
-        results.forEach(([label, value, formula]) => {
-            if (yPos > 270) {
-                doc.addPage();
-                yPos = 20;
-            }
-            doc.setFont(undefined, 'bold');
-            doc.text(label + ':', leftMargin, yPos);
-            doc.setFont(undefined, 'normal');
-            doc.text(value, rightMargin, yPos, { align: 'right' });
-            yPos += lineHeight;
-            
-            // Add formula if provided
-            if (formula) {
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'italic');
-                doc.text(formula, leftMargin + 5, yPos, { maxWidth: 150 });
-                yPos += lineHeight;
-                doc.setFontSize(10);
-                doc.setFont(undefined, 'normal');
-            }
+        // Load logo first, then generate PDF
+        loadLogoImage(logoUrl).then(function(logoData) {
+            // Logo loaded successfully, proceed with PDF generation
+            createPDF(null, logoData);
+        }).catch(function(error) {
+            // Logo failed to load, generate PDF without logo (will use fallback)
+            console.warn('Logo not loaded, using fallback:', error);
+            createPDF(null, null);
         });
+    }
+    
+    function createPDF(userData, logoImageData) {
+        try {
+            // Check for jsPDF library
+            let jsPDF;
+            if (typeof window.jspdf !== 'undefined') {
+                jsPDF = window.jspdf.jsPDF;
+            } else if (typeof window.jsPDF !== 'undefined') {
+                jsPDF = window.jsPDF;
+            } else {
+                throw new Error('jsPDF library not loaded');
+            }
+            
+            const doc = new jsPDF();
         
-        // Save PDF
-        doc.save('DSCR_Calculator_Report.pdf');
+            // Helper function for currency formatting
+            function formatCurrencyPDF(value) {
+                return '$' + Math.round(value).toLocaleString('en-US');
+            }
+            
+            // Colors matching Express Capital Financing logo
+            const primaryColor = [34, 139, 34]; // Dark green (matching logo)
+            const highlightColor = [255, 193, 7]; // Gold/Mustard yellow (matching logo)
+            const textColor = [51, 51, 51];
+            const lightGray = [245, 245, 245];
+            const white = [255, 255, 255];
+            const darkGray = [64, 64, 64];
+            
+            let yPos = 20;
+            
+            // Header with company branding - Light background
+            const lightBgColor = [248, 249, 250]; // Light gray background
+            doc.setFillColor(...lightBgColor);
+            doc.rect(0, 0, 210, 80, 'F');
+            
+            // Add border line at bottom of header
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.5);
+            doc.line(10, 80, 200, 80);
+            
+            // Logo on left side
+            const logoX = 15;
+            const logoY = 15;
+            const logoWidth = 70;
+            const logoHeight = 25;
+            
+            // Add logo image if available, otherwise use fallback text
+            if (logoImageData) {
+                try {
+                    doc.addImage(logoImageData, 'PNG', logoX, logoY, logoWidth, logoHeight);
+                } catch (e) {
+                    console.error('Error adding logo image to PDF:', e);
+                    // Fall through to fallback
+                    addTextLogo();
+                }
+            } else {
+                // Fallback: Text-based logo if image not available
+                addTextLogo();
+            }
+            
+            function addTextLogo() {
+                doc.setFontSize(18);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...primaryColor); // Dark green
+                doc.text('EXPRESS', logoX, logoY + 8);
+                doc.setFontSize(16);
+                doc.text('CAPITAL', logoX, logoY + 18);
+                doc.setFontSize(14);
+                doc.setTextColor(100, 100, 100); // Dark gray
+                doc.text('FINANCING', logoX, logoY + 28);
+            }
+            
+            // Contact information on right side
+            const contactX = 200; // Right edge of page
+            const contactY = 15;
+            
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...textColor);
+            doc.text('Contact Information', contactX, contactY, { align: 'right' });
+            
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Phone: (718) 285-0806', contactX, contactY + 8, { align: 'right' });
+            doc.text('Email: info@expresscapitalfinancing.com', contactX, contactY + 15, { align: 'right' });
+            
+            // Office addresses
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text('New York Office:', contactX, contactY + 25, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.text('14 53rd St, #408N', contactX, contactY + 31, { align: 'right' });
+            doc.text('Brooklyn, NY 11232', contactX, contactY + 37, { align: 'right' });
+            
+            // Report title section with gold highlight
+            yPos = 60;
+            doc.setFillColor(...highlightColor);
+            doc.rect(0, yPos - 5, 210, 15, 'F');
+            doc.setTextColor(0, 0, 0); // Black text on gold
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('DSCR Rental Calculator Report', 105, yPos + 5, { align: 'center' });
+            
+            yPos = 90;
+            doc.setTextColor(...textColor);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Generated on: ' + new Date().toLocaleDateString(), 10, yPos);
+            
+            // Get input values
+            const getInputVal = (id) => parseFloat(app.querySelector(`[data-id="${id}"] input[type="number"]`).value) || 0;
+            const inputPrice = getInputVal('price');
+            const inputUnits = getInputVal('units') || 1;
+            const inputLTV = getInputVal('ltv');
+            const inputRate = getInputVal('rate');
+            const inputTerm = getInputVal('term') || 30;
+            const inputOrigination = getInputVal('origination');
+            
+            // Key Results Section (Highlighted with gold)
+            yPos += 15;
+            doc.setFillColor(...highlightColor);
+            doc.rect(10, yPos - 5, 190, 65, 'F');
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 0, 0); // Black text on gold background
+            doc.text('Key Results', 15, yPos + 5);
+            
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            
+            const keyResults = [
+                { label: 'DSCR', value: calculatedValues.dscr.toFixed(2), x: 15 },
+                { label: 'Cash on Cash Return', value: calculatedValues.cashOnCashReturn.toFixed(2) + '%', x: 110 },
+                { label: 'Cap Rate', value: calculatedValues.capRate.toFixed(2) + '%', x: 15 },
+                { label: 'Net Monthly Cashflow', value: formatCurrencyPDF(calculatedValues.netMonthlyCashflow), x: 110 },
+                { label: 'Cash Needed to Close', value: formatCurrencyPDF(calculatedValues.cashNeededToClose), x: 15 },
+                { label: 'Net Operating Income', value: formatCurrencyPDF(calculatedValues.netOperatingIncome), x: 110 }
+            ];
+            
+            let resultY = yPos + 15;
+            keyResults.forEach((result, index) => {
+                // Layout for 6 items: 2 columns, 3 rows
+                if (index === 2) {
+                    resultY += 12; // Move to second row
+                } else if (index === 4) {
+                    resultY += 12; // Move to third row
+                }
+                doc.setTextColor(0, 0, 0); // Black text on gold background
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(11);
+                doc.text(result.label + ':', result.x, resultY);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...primaryColor); // Dark green for values
+                doc.text(result.value, result.x + 60, resultY);
+            });
+            
+            yPos += 70;
+            
+            // Financial Breakdown
+            doc.setFillColor(...primaryColor); // Dark green background
+            doc.rect(10, yPos - 5, 190, 8, 'F');
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...white); // White text on dark green
+            doc.text('Financial Breakdown', 15, yPos + 1);
+            doc.setTextColor(...textColor); // Reset to dark text
+            
+            yPos += 10;
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            const financialData = [
+                { label: 'Purchase Price', value: formatCurrencyPDF(inputPrice) },
+                { label: 'Number of Units', value: inputUnits.toString() },
+                { label: 'Price per Unit', value: formatCurrencyPDF(calculatedValues.pricePerUnit) },
+                { label: 'LTV (%)', value: inputLTV.toFixed(2) + '%' },
+                { label: 'Loan Amount', value: formatCurrencyPDF(calculatedValues.loanAmount) },
+                { label: 'Down Payment', value: formatCurrencyPDF(calculatedValues.downPayment) },
+                { label: 'Monthly Payment (P&I)', value: formatCurrencyPDF(calculatedValues.monthlyPI) },
+                { label: 'PITIA', value: formatCurrencyPDF(calculatedValues.pitia) },
+                { label: 'Annual Mortgage Payment', value: formatCurrencyPDF(calculatedValues.annualMortgagePayment) },
+                { label: 'Origination Fee Amount', value: formatCurrencyPDF(calculatedValues.originationFeeAmount) },
+                { label: 'Loan Closing Fees', value: formatCurrencyPDF(getInputVal('closing-fees')) },
+                { label: '3rd Party Closing Cost', value: formatCurrencyPDF(getInputVal('third-party')) },
+                { label: 'Total Closing Cost', value: formatCurrencyPDF(calculatedValues.totalClosingCost) },
+                { label: 'Cash Needed to Close', value: formatCurrencyPDF(calculatedValues.cashNeededToClose) }
+            ];
+            
+            financialData.forEach((item) => {
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.setTextColor(...textColor);
+                doc.setFont('helvetica', 'normal');
+                doc.text(item.label + ':', 15, yPos);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...primaryColor); // Dark green for values
+                doc.text(item.value, 150, yPos);
+                doc.setFont('helvetica', 'normal');
+                yPos += 8;
+            });
+            
+            // Rental Income & Expenses
+            yPos += 5;
+            doc.setFillColor(...primaryColor); // Dark green background
+            doc.rect(10, yPos - 5, 190, 8, 'F');
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...white); // White text on dark green
+            doc.text('Rental Income & Expenses', 15, yPos + 1);
+            doc.setTextColor(...textColor); // Reset to dark text
+            
+            yPos += 10;
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            const rentalData = [
+                { label: 'Gross Monthly Rental Income', value: formatCurrencyPDF(calculatedValues.grossMonthlyRentalIncome) },
+                { label: 'Annual Rental Income', value: formatCurrencyPDF(calculatedValues.annualRentalIncome) },
+                { label: 'Vacancy Rate (%)', value: getInputVal('vacancy').toFixed(2) + '%' },
+                { label: 'Vacancy Deduction', value: formatCurrencyPDF(calculatedValues.vacancyDeduction) },
+                { label: 'Net Effective Rent', value: formatCurrencyPDF(calculatedValues.netEffectiveRent) },
+                { label: 'Property Taxes', value: formatCurrencyPDF(getInputVal('taxes')) },
+                { label: 'Insurance', value: formatCurrencyPDF(getInputVal('insurance')) },
+                { label: 'Taxes and Insurance', value: formatCurrencyPDF(calculatedValues.taxesAndInsurance) },
+                { label: 'Monthly HOA', value: formatCurrencyPDF(getInputVal('hoa')) },
+                { label: 'Annual HOA', value: formatCurrencyPDF(calculatedValues.annualHOA) },
+                { label: 'Annual Repairs and Maintenance', value: formatCurrencyPDF(calculatedValues.annualRepair) },
+                { label: 'Annual Utilities', value: formatCurrencyPDF(calculatedValues.annualUtilities) }
+            ];
+            
+            rentalData.forEach((item) => {
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.setTextColor(...textColor);
+                doc.setFont('helvetica', 'normal');
+                doc.text(item.label + ':', 15, yPos);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...primaryColor); // Dark green for values
+                doc.text(item.value, 150, yPos);
+                doc.setFont('helvetica', 'normal');
+                yPos += 8;
+            });
+            
+            // Operating Results
+            yPos += 5;
+            doc.setFillColor(...primaryColor); // Dark green background
+            doc.rect(10, yPos - 5, 190, 8, 'F');
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...white); // White text on dark green
+            doc.text('Operating Results', 15, yPos + 1);
+            doc.setTextColor(...textColor); // Reset to dark text
+            
+            yPos += 10;
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            const operatingData = [
+                { label: 'Operating Expenses', value: formatCurrencyPDF(calculatedValues.operatingExpenses) },
+                { label: 'Net Operating Income', value: formatCurrencyPDF(calculatedValues.netOperatingIncome) },
+                { label: 'Net Monthly Cashflow', value: formatCurrencyPDF(calculatedValues.netMonthlyCashflow) },
+                { label: 'Cap Rate', value: calculatedValues.capRate.toFixed(2) + '%' },
+                { label: 'Cash on Cash Return', value: calculatedValues.cashOnCashReturn.toFixed(2) + '%' },
+                { label: 'DSCR', value: calculatedValues.dscr.toFixed(2) }
+            ];
+            
+            operatingData.forEach((item) => {
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.setTextColor(...textColor);
+                doc.setFont('helvetica', 'normal');
+                doc.text(item.label + ':', 15, yPos);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...primaryColor); // Dark green for values
+                doc.text(item.value, 150, yPos);
+                doc.setFont('helvetica', 'normal');
+                yPos += 8;
+            });
+            
+            // Footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                doc.text('Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
+                doc.text('Disclaimer: This calculator provides estimates only. Consult with financial and real estate professionals before making investment decisions.', 105, 285, { align: 'center', maxWidth: 190 });
+            }
+            
+            // Download PDF
+            const fileName = 'DSCR-Calculator-Report-' + new Date().getTime() + '.pdf';
+            doc.save(fileName);
+        
+            // Save PDF
+            doc.save('DSCR_Calculator_Report.pdf');
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Error generating PDF: ' + error.message);
+        }
     }
     
     // Add PDF download button event
-    const pdfBtn = app.querySelector('.cta.secondary');
+    const pdfBtn = app.querySelector('#downloadPdfBtn') || app.querySelector('.cta.secondary');
     if (pdfBtn) {
-        pdfBtn.addEventListener('click', downloadPDF);
+        pdfBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('PDF button clicked');
+            try {
+                downloadPDF();
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please check the console for details.');
+            }
+        });
+    } else {
+        console.error('PDF button not found');
     }
     
     // Final init
