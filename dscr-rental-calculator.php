@@ -73,83 +73,66 @@ function dscr_calc_shortcode() {
                 gap: 14px; 
             }
 
-            .dscr-range-wrapper {
+            .slider-container {
                 flex: 1;
-                height: 40px;
-                background: #f3f4f6;
-                border: 1px solid #d1d5db;
-                border-radius: 10px;
-                position: relative;
-                overflow: visible;
-                padding: 0 19px;
-                box-sizing: border-box;
+                display: flex;
+                align-items: center;
             }
 
-            .dscr-range-fill {
+            .slider-track {
+                width: 100%;
+                height: 48px;
+                background-color: #ffffff;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                position: relative;
+                padding: 4px;
+                box-sizing: border-box;
+                display: flex;
+                align-items: center;
+            }
+
+            .slider-fill {
                 height: calc(100% - 8px);
-                background: #065f46;
-                width: 0%;
-                pointer-events: none;
+                background-color: #006b35;
                 border-radius: 6px;
-                position: absolute;
-                left: 19px;
-                top: 4px;
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                transition: width 0.3s ease;
                 min-width: 0;
             }
 
-            .dscr-range-handle-visual {
-                position: absolute;
-                top: 50%;
-                left: 0%;
-                transform: translate(-50%, -50%);
-                height: 30px;
-                width: 40px;
-                background: #0b6e3d;
-                border-radius: 8px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                gap: 3px;
-                pointer-events: none;
-                z-index: 2;
-                transition: left 0.05s linear, background 0.2s, height 0.2s, width 0.2s;
-                box-sizing: border-box;
-                will-change: left;
-            }
-
-            .dscr-range-wrapper.has-value .dscr-range-handle-visual {
-                height: 30px;
-                width: 38px;
-                background: #61977c;
+            .slider-thumb {
+                width: 42px;
+                height: calc(100% - 4px);
+                background-color: #27a768;
                 border-radius: 6px;
+                margin-right: 2px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: inset 0 0 4px rgba(0,0,0,0.1);
+                cursor: pointer;
+                flex-shrink: 0;
             }
 
-            .handle-pause-icon {
-                display: none;
+            .thumb-lines {
+                display: flex;
+                gap: 4px;
             }
 
-            .dscr-range-wrapper:not(.has-value) .handle-pause-icon {
-                display: block;
+            .thumb-lines span {
+                width: 3px;
+                height: 16px;
+                background-color: #006b35;
+                border-radius: 2px;
+                opacity: 0.8;
             }
 
-            .dscr-range-wrapper:not(.has-value) .handle-line {
-                display: none;
-            }
-
-            .dscr-range-wrapper.has-value .handle-pause-icon {
-                display: none;
-            }
-
-            .handle-pause-icon svg {
-                width: 12px;
-                height: 12px;
-            }
-
-            .handle-line { 
-                width: 3px; 
-                height: 14px; 
-                background: #064e3b; 
-                border-radius: 2px; 
+            .slider-track:hover .slider-fill {
+                filter: brightness(1.05);
             }
 
             .dscr-range-input {
@@ -380,23 +363,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="price">
                     <label>Purchase Price</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="5000000" 
                                    step="5000" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
@@ -408,23 +390,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="units">
                     <label>Number of Units</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="1" 
                                    max="50" 
                                    step="1" 
                                    value="1" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">#</span>
@@ -436,23 +417,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="ltv">
                     <label>LTV (%)</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="100" 
                                    step="1" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">%</span>
@@ -464,23 +444,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="rate">
                     <label>Interest Rate (%)</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="1" 
                                    max="15" 
                                    step="0.1" 
                                    value="1" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">%</span>
@@ -492,23 +471,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="term">
                     <label>Years</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="5" 
                                    max="40" 
                                    step="1" 
                                    value="5" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">Yrs</span>
@@ -520,23 +498,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="origination">
                     <label>Origination Points</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="5" 
                                    step="0.25" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">pts</span>
@@ -548,23 +525,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="closing-fees">
                     <label>Loan Closing Fees</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="10000" 
                                    step="100" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
@@ -576,23 +552,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="rent">
                     <label>Monthly Gross Rent</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="50000" 
                                    step="100" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
@@ -604,23 +579,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="vacancy">
                     <label>Vacancy Rate (%)</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="20" 
                                    step="0.5" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">%</span>
@@ -632,23 +606,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="taxes">
                     <label>Property Taxes</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="50000" 
                                    step="100" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
@@ -660,23 +633,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="insurance">
                     <label>Insurance</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="20000" 
                                    step="50" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
@@ -688,23 +660,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="hoa">
                     <label>Monthly HOA</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="2000" 
                                    step="10" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
@@ -716,23 +687,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="repair">
                     <label>Annual Repair and Maint (per unit)</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="5000" 
                                    step="50" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
@@ -744,23 +714,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="utilities">
                     <label>Annual Utilities</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="10000" 
                                    step="50" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
@@ -772,23 +741,22 @@ function dscr_calc_shortcode() {
                 <div class="dscr-field-group" data-id="third-party">
                     <label>3rd Party Closing Cost</label>
                     <div class="dscr-control-row">
-                        <div class="dscr-range-wrapper">
-                            <div class="dscr-range-fill"></div>
-                            <div class="dscr-range-handle-visual">
-                                <div class="handle-pause-icon">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect x="3" y="2" width="2" height="8" fill="white" rx="1"/>
-                                        <rect x="7" y="2" width="2" height="8" fill="white" rx="1"/>
-                                    </svg>
+                        <div class="slider-container">
+                            <div class="slider-track">
+                                <div class="slider-fill" style="width: 0%;">
+                                    <div class="slider-thumb">
+                                        <div class="thumb-lines">
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="handle-line"></div>
-                                <div class="handle-line"></div>
-                            </div>
-                            <input type="range" class="dscr-range-input" 
+                                <input type="range" class="dscr-range-input" 
                                    min="0" 
                                    max="20000" 
                                    step="100" 
                                    value="0" />
+                            </div>
                         </div>
                         <div class="dscr-num-box">
                             <span class="prefix">$</span>
@@ -892,9 +860,7 @@ function dscr_calc_shortcode() {
             const group = app.querySelector(`.dscr-field-group[data-id="${groupId}"]`);
             const range = group.querySelector('.dscr-range-input');
             const number = group.querySelector('input[type="number"]');
-            const fill = group.querySelector('.dscr-range-fill');
-            const handle = group.querySelector('.dscr-range-handle-visual');
-            const wrapper = group.querySelector('.dscr-range-wrapper');
+            const fill = group.querySelector('.slider-fill');
 
             // Sync the other input
             if (source === 'range') {
@@ -908,20 +874,10 @@ function dscr_calc_shortcode() {
                 value = clampedNum;
             }
 
-            // Calculate percentage for visual fill and handle
+            // Calculate percentage for visual fill
             const min = parseFloat(range.min);
             const max = parseFloat(range.max);
             const clampedVal = Math.min(Math.max(parseFloat(value) || 0, min), max);
-            
-            // Check if value is at minimum (zero or minimum value)
-            const isAtMinimum = clampedVal === min;
-            
-            // Toggle has-value class to show/hide pause icon vs lines
-            if (isAtMinimum) {
-                wrapper.classList.remove('has-value');
-            } else {
-                wrapper.classList.add('has-value');
-            }
             
             // Calculate percentage (0 to 100)
             let percent = 0;
@@ -932,24 +888,8 @@ function dscr_calc_shortcode() {
             // Clamp percent to valid range (0-100)
             percent = Math.max(0, Math.min(100, percent));
             
-            // Get wrapper dimensions for positioning
-            const wrapperWidth = wrapper.offsetWidth;
-            const padding = 19; // left and right padding
-            const innerWidth = wrapperWidth - (padding * 2);
-            
-            if (isAtMinimum) {
-                // At minimum: position handle at left edge (19px from wrapper left)
-                handle.style.left = padding + 'px';
-                fill.style.width = '0%';
-            } else {
-                // Update fill width - fill extends to where the handle center should be
-                const fillWidth = (percent / 100) * innerWidth;
-                fill.style.width = fillWidth + 'px';
-                
-                // Update handle position - account for padding
-                const handleLeft = padding + (percent / 100) * innerWidth;
-                handle.style.left = handleLeft + 'px';
-            }
+            // Update fill width - the thumb is inside the fill, so it will be positioned correctly
+            fill.style.width = percent + '%';
 
             calculate();
         }
@@ -1092,24 +1032,24 @@ function dscr_calc_shortcode() {
         groups.forEach(group => {
             const range = group.querySelector('.dscr-range-input');
             const number = group.querySelector('input[type="number"]');
-            const handle = group.querySelector('.dscr-range-handle-visual');
+            const fill = group.querySelector('.slider-fill');
             const id = group.dataset.id;
 
             // Disable transition while dragging for instant response
             range.addEventListener('mousedown', () => {
-                handle.style.transition = 'none';
+                fill.style.transition = 'none';
             });
             
             range.addEventListener('mouseup', () => {
-                handle.style.transition = '';
+                fill.style.transition = 'width 0.3s ease';
             });
             
             range.addEventListener('touchstart', () => {
-                handle.style.transition = 'none';
+                fill.style.transition = 'none';
             });
             
             range.addEventListener('touchend', () => {
-                handle.style.transition = '';
+                fill.style.transition = 'width 0.3s ease';
             });
 
             range.addEventListener('input', (e) => updateUI(id, e.target.value, 'range'));

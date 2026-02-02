@@ -25,9 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const group = app.querySelector(`.dscr-field-group[data-id="${groupId}"]`);
         const range = group.querySelector('.dscr-range-input');
         const number = group.querySelector('input[type="number"]');
-        const fill = group.querySelector('.dscr-range-fill');
-        const handle = group.querySelector('.dscr-range-handle-visual');
-        const wrapper = group.querySelector('.dscr-range-wrapper');
+        const fill = group.querySelector('.slider-fill');
 
         // Sync the other input
         if (source === 'range') {
@@ -41,20 +39,10 @@ document.addEventListener('DOMContentLoaded', function() {
             value = clampedNum;
         }
 
-        // Calculate percentage for visual fill and handle
+        // Calculate percentage for visual fill
         const min = parseFloat(range.min);
         const max = parseFloat(range.max);
         const clampedVal = Math.min(Math.max(parseFloat(value) || 0, min), max);
-        
-        // Check if value is at minimum (zero or minimum value)
-        const isAtMinimum = clampedVal === min;
-        
-        // Toggle has-value class to show/hide pause icon vs lines
-        if (isAtMinimum) {
-            wrapper.classList.remove('has-value');
-        } else {
-            wrapper.classList.add('has-value');
-        }
         
         // Calculate percentage (0 to 100)
         let percent = 0;
@@ -65,24 +53,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clamp percent to valid range (0-100)
         percent = Math.max(0, Math.min(100, percent));
         
-        // Get wrapper dimensions for positioning
-        const wrapperWidth = wrapper.offsetWidth;
-        const padding = 19; // left and right padding
-        const innerWidth = wrapperWidth - (padding * 2);
-        
-        if (isAtMinimum) {
-            // At minimum: position handle at left edge (19px from wrapper left)
-            handle.style.left = padding + 'px';
-            fill.style.width = '0%';
-        } else {
-            // Update fill width - fill extends to where the handle center should be
-            const fillWidth = (percent / 100) * innerWidth;
-            fill.style.width = fillWidth + 'px';
-            
-            // Update handle position - account for padding
-            const handleLeft = padding + (percent / 100) * innerWidth;
-            handle.style.left = handleLeft + 'px';
-        }
+        // Update fill width - the thumb is inside the fill, so it will be positioned correctly
+        fill.style.width = percent + '%';
 
         calculate();
     }
@@ -225,24 +197,24 @@ document.addEventListener('DOMContentLoaded', function() {
     groups.forEach(group => {
         const range = group.querySelector('.dscr-range-input');
         const number = group.querySelector('input[type="number"]');
-        const handle = group.querySelector('.dscr-range-handle-visual');
+        const fill = group.querySelector('.slider-fill');
         const id = group.dataset.id;
 
         // Disable transition while dragging for instant response
         range.addEventListener('mousedown', () => {
-            handle.style.transition = 'none';
+            fill.style.transition = 'none';
         });
         
         range.addEventListener('mouseup', () => {
-            handle.style.transition = '';
+            fill.style.transition = 'width 0.3s ease';
         });
         
         range.addEventListener('touchstart', () => {
-            handle.style.transition = 'none';
+            fill.style.transition = 'none';
         });
         
         range.addEventListener('touchend', () => {
-            handle.style.transition = '';
+            fill.style.transition = 'width 0.3s ease';
         });
 
         range.addEventListener('input', (e) => updateUI(id, e.target.value, 'range'));
