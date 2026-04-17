@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const app = document.getElementById('dscr-calculator-app');
     const groups = app.querySelectorAll('.dscr-field-group');
     const vals = {
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cashflow: app.querySelector('#val-cashflow'),
         closingCost: app.querySelector('#val-closing-cost')
     };
-    
+
     // Store all calculated values for PDF
     let calculatedValues = {};
     const applyBtn = app.querySelector('#applyBtn');
@@ -18,20 +18,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkWrapper = app.querySelector('#checkWrapper');
 
     function formatCurrency(num) {
-        return '$' + num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatNumberWithCommas(num) {
+        if (num === '' || num === null || num === undefined) return '0';
+        const n = parseFloat(String(num).replace(/,/g, ''));
+        if (isNaN(n)) return '0';
+        const parts = String(n).split('.');
+        const intPart = parseInt(parts[0], 10).toLocaleString('en-US');
+        if (parts.length > 1) {
+            return intPart + '.' + parts[1];
+        }
+        return intPart;
+    }
+
+    function parseNumericValue(val) {
+        return parseFloat(String(val).replace(/,/g, '')) || 0;
     }
 
     function updateUI(groupId, value, source) {
         const group = app.querySelector(`.dscr-field-group[data-id="${groupId}"]`);
         const range = group.querySelector('.dscr-range-input');
-        const number = group.querySelector('input[type="number"]');
+        const textInput = group.querySelector('input[type="text"]');
         const fill = group.querySelector('.slider-fill');
 
         // Sync the other input
         if (source === 'range') {
-            number.value = value;
+            textInput.value = formatNumberWithCommas(value);
         } else if (source === 'number') {
-            const numVal = parseFloat(value) || 0;
+            const numVal = parseNumericValue(value);
             const min = parseFloat(range.min);
             const max = parseFloat(range.max);
             const clampedNum = Math.max(min, Math.min(max, numVal));
@@ -43,16 +59,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const min = parseFloat(range.min);
         const max = parseFloat(range.max);
         const clampedVal = Math.min(Math.max(parseFloat(value) || 0, min), max);
-        
+
         // Calculate percentage (0 to 100)
         let percent = 0;
         if (max > min) {
             percent = ((clampedVal - min) / (max - min)) * 100;
         }
-        
+
         // Clamp percent to valid range (0-100)
         percent = Math.max(0, Math.min(100, percent));
-        
+
         // Update fill width - the thumb is inside the fill, so it will be positioned correctly
         fill.style.width = percent + '%';
 
@@ -60,10 +76,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function calculate() {
-        const getVal = (id) => parseFloat(app.querySelector(`[data-id="${id}"] input[type="number"]`).value) || 0;
-        
+        const getVal = (id) => parseNumericValue(app.querySelector(`[data-id="${id}"] input[type="text"]`).value);
+
         const price = getVal('price');
-        const units = getVal('units') || 1;
+        const units = 1;
         const ltv = getVal('ltv');
         const rate = getVal('rate');
         const term = getVal('term') || 1;
@@ -82,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Formula: Loan Amount = Purchase Price * LTV
         const loanAmount = (price * ltv) / 100;
         vals.loan.textContent = '$' + loanAmount.toLocaleString();
-        
+
         // Calculate origination fee (as percentage of loan amount)
         const originationFee = (loanAmount * origination) / 100;
 
@@ -104,68 +120,71 @@ document.addEventListener('DOMContentLoaded', function() {
         const monthlyTaxes = taxes / 12;
         const monthlyInsurance = insurance / 12;
         const monthlyHOA = hoa; // Already monthly
-        
+
         // Total monthly debt service (PITIA)
         const pitia = monthlyPI + monthlyTaxes + monthlyInsurance + monthlyHOA;
         vals.pitia.textContent = formatCurrency(pitia);
-        
+
         // Calculate Down Payment
         const downPayment = price - loanAmount;
-        
+
         // Calculate Annual Mortgage Payment = PITIA * 12
         const annualMortgagePayment = pitia * 12;
-        
+
         // Calculate Annual HOA
         const annualHOA = hoa * 12;
-        
+
         // Calculate Annual Repairs and Maintenance
         const annualRepair = repair * units;
-        
+
         // Annual Rental Income = Gross Monthly Rental Income * 12
         const annualRentalIncome = rent * 12;
-        
+
         // Vacancy Deduction = Annual Rental Income * vacancy Rate
         const vacancyRate = vacancy / 100;
         const vacancyDeduction = annualRentalIncome * vacancyRate;
-        
+
         // Net Effective Rent = Annual Rental Income - Vacancy Deduction
         const netEffectiveRent = annualRentalIncome - vacancyDeduction;
-        
+
         // Operating Expenses = (Taxes and Insurance + Annual HOA + Annual Repairs and Maint + Annual Utilities) + (Monthly Payment (P&I) * 12)
         const taxesAndInsurance = taxes + insurance;
         const operatingExpenses = (taxesAndInsurance + annualHOA + annualRepair + utilities) + (monthlyPI * 12);
-        
+
         // Net Operating Income = Net Effective Rent - Operating Expenses
         const netOperatingIncome = netEffectiveRent - operatingExpenses;
-        
+
         // Net Monthly Cashflow = Net Operating Income / 12
         const netMonthlyCashflow = netOperatingIncome / 12;
         vals.cashflow.textContent = formatCurrency(netMonthlyCashflow);
-        
-        // Calculate Total Closing Cost
+
+        // Calculate ROI = Net Operating Income / Purchase Price
+        const roi = price > 0 ? (netOperatingIncome / price) * 100 : 0;
+        vals.closingCost.textContent = roi.toFixed(2) + '%';
+
+        // Calculate Total Closing Cost (used internally for cash needed to close and PDF)
         const totalClosingCost = originationFee + closingFees + thirdParty;
-        vals.closingCost.textContent = formatCurrency(totalClosingCost);
-        
+
         // Calculate Cash Needed to Close
         const cashNeededToClose = downPayment + totalClosingCost;
-        
+
         // Cap Rate = Net Operating Income / Purchase Price (in %)
         const capRate = price > 0 ? (netOperatingIncome / price) * 100 : 0;
-        
+
         // Cash on Cash Return = Net Operating Income / Cash Needed to Close
         const cashOnCashReturn = cashNeededToClose > 0 ? (netOperatingIncome / cashNeededToClose) * 100 : 0;
-        
+
         // DSCR = (Net Effective Rent / 12) / PITIA
         // This is monthly NOI divided by monthly debt service
         const monthlyNetEffectiveRent = netEffectiveRent / 12;
         let dscr = pitia > 0 ? monthlyNetEffectiveRent / pitia : 0;
         vals.dscr.textContent = dscr.toFixed(2);
-        
+
         // DSCR Status Color
         if (dscr >= 1.25) vals.dscr.style.color = '#22c55e';
         else if (dscr >= 1.0) vals.dscr.style.color = '#eab308';
         else vals.dscr.style.color = '#ef4444';
-        
+
         // Store all calculated values for PDF
         calculatedValues = {
             pricePerUnit: price / units,
@@ -196,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     groups.forEach(group => {
         const range = group.querySelector('.dscr-range-input');
-        const number = group.querySelector('input[type="number"]');
+        const textInput = group.querySelector('input[type="text"]');
         const fill = group.querySelector('.slider-fill');
         const id = group.dataset.id;
 
@@ -204,22 +223,27 @@ document.addEventListener('DOMContentLoaded', function() {
         range.addEventListener('mousedown', () => {
             fill.style.transition = 'none';
         });
-        
+
         range.addEventListener('mouseup', () => {
             fill.style.transition = 'width 0.3s ease';
         });
-        
+
         range.addEventListener('touchstart', () => {
             fill.style.transition = 'none';
         });
-        
+
         range.addEventListener('touchend', () => {
             fill.style.transition = 'width 0.3s ease';
         });
 
         range.addEventListener('input', (e) => updateUI(id, e.target.value, 'range'));
-        number.addEventListener('input', (e) => updateUI(id, e.target.value, 'number'));
-        
+        textInput.addEventListener('input', (e) => {
+            updateUI(id, e.target.value, 'number');
+        });
+        textInput.addEventListener('blur', (e) => {
+            e.target.value = formatNumberWithCommas(e.target.value);
+        });
+
         // Initialize
         updateUI(id, range.value, 'range');
     });
@@ -239,375 +263,233 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     checkWrapper.addEventListener('click', toggleCheck);
-    
-    // Function to load logo image and convert to base64
-    function loadLogoImage(logoUrl) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            
-            img.onload = function() {
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    const imgData = canvas.toDataURL('image/png');
-                    resolve(imgData);
-                } catch (e) {
-                    console.error('Error converting logo to base64:', e);
-                    reject(e);
-                }
-            };
-            
-            img.onerror = function() {
-                console.warn('Logo image failed to load from:', logoUrl);
-                reject(new Error('Logo image not found'));
-            };
-            
-            img.src = logoUrl;
-        });
+
+    function formatCurrencyPDF(value) {
+        return '$' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    
-    // PDF Download Function
+
+    function buildPdfHtml() {
+        const getInputVal = (id) => parseNumericValue(app.querySelector(`[data-id="${id}"] input[type="text"]`).value);
+        const cv = calculatedValues;
+
+        const logoSrc = (typeof dscrPdfLogo !== 'undefined' && dscrPdfLogo) ? dscrPdfLogo : 'logo.png';
+
+        const inputPrice = getInputVal('price');
+        const inputLTV = getInputVal('ltv');
+        const inputRate = getInputVal('rate');
+        const inputTerm = getInputVal('term') || 30;
+        const inputOrigination = getInputVal('origination');
+        const inputClosingFees = getInputVal('closing-fees');
+        const inputRent = getInputVal('rent');
+        const inputVacancy = getInputVal('vacancy');
+        const inputTaxes = getInputVal('taxes');
+        const inputInsurance = getInputVal('insurance');
+        const inputHOA = getInputVal('hoa');
+        const inputRepair = getInputVal('repair');
+        const inputUtilities = getInputVal('utilities');
+        const inputThirdParty = getInputVal('third-party');
+
+        return `
+<style>
+  #pdf-report * { margin: 0; padding: 0; box-sizing: border-box; }
+  #pdf-report { font-family: "Segoe UI", Arial, sans-serif; background: #fff; width: 1000px; color: #333; display: flex; flex-direction: column; min-height: 1415px; }
+  #pdf-report .pdf-container { max-width: 1000px; margin: 0; background: #ffffff; padding: 0; flex: 1; }
+  #pdf-report .pdf-header { background: #3c4a5d; height: 120px; position: relative; width: 100%; }
+  #pdf-report .pdf-logo-box { position: absolute; bottom: 0; left: 0; background: #ffffff; width: 260px; height: 100px; border-radius: 0 14px 0 0; display: flex; align-items: center; justify-content: center; padding: 10px 15px; }
+  #pdf-report .pdf-logo-box img { max-height: 100%; }
+  #pdf-report .pdf-contact { position: absolute; top: 38px; right: 40px; color: #ffffff; font-size: 13px; text-align: right; line-height: 1.6; }
+  #pdf-report .pdf-contact-row { display: flex; justify-content: flex-end; gap: 10px; }
+  #pdf-report .pdf-label { font-weight: 600; }
+  #pdf-report .pdf-title { position: absolute; bottom: -22px; left: 65%; transform: translateX(-50%); background: #1e7a52; color: white; padding: 10px 40px; border-radius: 8px; font-weight: bold; font-size: 18px; z-index: 10; white-space: nowrap; }
+  #pdf-report .pdf-main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px 15px; margin-top: 30px; }
+  #pdf-report .pdf-column { display: flex; flex-direction: column; gap: 20px; }
+  #pdf-report .pdf-card { background: #fafafa; border: 1px solid #d9c7a3; padding: 14px 16px; display: flex; flex-direction: column; }
+  #pdf-report .pdf-section-gap { height: 12px; }
+  #pdf-report .pdf-card h3 { margin: 0 0 8px; font-size: 14px; border-bottom: 1px solid #d6c7b2; padding-bottom: 5px; color: #333; }
+  #pdf-report .pdf-sub-title { font-weight: bold; margin: 6px 0 3px; font-size: 13px; }
+  #pdf-report .pdf-row { display: flex; justify-content: space-between; font-size: 12px; margin: 4px 0; }
+  #pdf-report .pdf-positive span:last-child { color: #1a8f3c; font-weight: bold; }
+  #pdf-report .pdf-negative span:last-child { color: #b33939; }
+  #pdf-report .pdf-divider { border-top: 1px solid #d6c7b2; margin: 6px 0; }
+  #pdf-report .pdf-footer { text-align: center; font-size: 14px; padding: 10px 15px; color: #777; font-style: italic; margin-top: auto; }
+  #pdf-report .pdf-bar { display: block; height: 10px; background: #3c4a5d; }
+</style>
+<div id="pdf-report">
+<div class="pdf-container">
+  <div class="pdf-header">
+    <div class="pdf-logo-box">
+      <img src="${logoSrc}" alt="Express Capital Financing" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.outerHTML='<h2 style=\\'color:#1e7a52; margin:0; font-size: 18px;\\'>Express Capital Financing</h2>'" />
+    </div>
+    <div class="pdf-contact">
+      <div class="pdf-contact-row">
+        <span class="pdf-label">Call:</span>
+        <span>(718) 285-0806</span>
+      </div>
+      <div class="pdf-contact-row">
+        <span class="pdf-label">Email:</span>
+        <span>info@expresscapitalfinancing.com</span>
+      </div>
+    </div>
+    <div class="pdf-title">DSCR Calculator Report</div>
+  </div>
+
+  <div class="pdf-main-grid">
+    <div class="pdf-column">
+      <div class="pdf-card">
+        <div class="pdf-sub-title">Property Info</div>
+        <div class="pdf-divider"></div>
+        <div class="pdf-row"><span>Property Address</span><span></span></div>
+        <div class="pdf-row"><span>Purchase or Refinance?</span><span>Purchase</span></div>
+        <div class="pdf-row"><span>Purchase Price</span><span>${formatCurrencyPDF(inputPrice)}</span></div>
+        <div class="pdf-row"><span>Number of Units</span><span>1</span></div>
+
+        <div class="pdf-section-gap"></div>
+
+        <div class="pdf-sub-title">Loan Information</div>
+        <div class="pdf-divider"></div>
+        <div class="pdf-row"><span>LTV</span><span>${inputLTV}%</span></div>
+        <div class="pdf-row"><span>Interest Rate</span><span>${inputRate}%</span></div>
+        <div class="pdf-row"><span>Amortization (years)</span><span>${inputTerm}</span></div>
+        <div class="pdf-row"><span>Origination Points</span><span>${inputOrigination}%</span></div>
+        <div class="pdf-row"><span>Loan Closing Fees</span><span>${formatCurrencyPDF(inputClosingFees)}</span></div>
+
+        <div class="pdf-section-gap"></div>
+
+        <div class="pdf-sub-title">Property Income</div>
+        <div class="pdf-divider"></div>
+        <div class="pdf-row"><span>Total Rent</span><span>${formatCurrencyPDF(inputRent)}</span></div>
+        <div class="pdf-row"><span>Vacancy Rate</span><span>${inputVacancy}%</span></div>
+
+        <div class="pdf-section-gap"></div>
+
+        <div class="pdf-sub-title">Property Expenses</div>
+        <div class="pdf-divider"></div>
+        <div class="pdf-row"><span>Property Taxes</span><span>${formatCurrencyPDF(inputTaxes)}</span></div>
+        <div class="pdf-row"><span>Insurance</span><span>${formatCurrencyPDF(inputInsurance)}</span></div>
+        <div class="pdf-row"><span>Monthly HOA</span><span>${formatCurrencyPDF(inputHOA)}</span></div>
+        <div class="pdf-row"><span>Annual Repair and Maint (Per Unit)</span><span>${formatCurrencyPDF(inputRepair)}</span></div>
+        <div class="pdf-row"><span>Annual Utilities</span><span>${formatCurrencyPDF(inputUtilities)}</span></div>
+
+        <div class="pdf-section-gap"></div>
+
+        <div class="pdf-row"><span>3rd Party Closing Cost (Title, Insurance)</span><span>${formatCurrencyPDF(inputThirdParty)}</span></div>
+      </div>
+    </div>
+
+    <div class="pdf-column">
+      <div class="pdf-card">
+        <h3>Basic Info</h3>
+        <div class="pdf-row"><span>Price Per Unit</span><span>${formatCurrencyPDF(cv.pricePerUnit)}</span></div>
+        <div class="pdf-row"><span>Loan Amount</span><span>${formatCurrencyPDF(cv.loanAmount)}</span></div>
+        <div class="pdf-row"><span>Down Payment</span><span>${formatCurrencyPDF(cv.downPayment)}</span></div>
+      </div>
+
+      <div class="pdf-card">
+        <h3>Loan Information</h3>
+        <div class="pdf-row pdf-positive"><span>Monthly Payments (P&I)</span><span>${formatCurrencyPDF(cv.monthlyPI)}</span></div>
+        <div class="pdf-row"><span>PITIA</span><span>${formatCurrencyPDF(cv.pitia)}</span></div>
+        <div class="pdf-row"><span>Annual Mortgage Payment</span><span>${formatCurrencyPDF(cv.annualMortgagePayment)}</span></div>
+        <div class="pdf-row"><span>Origination Fee Amount</span><span>${formatCurrencyPDF(cv.originationFeeAmount)}</span></div>
+
+        <div class="pdf-section-gap"></div>
+
+        <div class="pdf-sub-title">Property Income</div>
+        <div class="pdf-divider"></div>
+        <div class="pdf-row"><span>Gross Monthly Rental Income</span><span>${formatCurrencyPDF(cv.grossMonthlyRentalIncome)}</span></div>
+        <div class="pdf-row"><span>Annual Rental Income</span><span>${formatCurrencyPDF(cv.annualRentalIncome)}</span></div>
+        <div class="pdf-row"><span>Vacancy Deduction</span><span>${formatCurrencyPDF(cv.vacancyDeduction)}</span></div>
+        <div class="pdf-row"><span>Net Effective Rent</span><span>${formatCurrencyPDF(cv.netEffectiveRent)}</span></div>
+
+        <div class="pdf-sub-title">Property Expenses</div>
+        <div class="pdf-divider"></div>
+        <div class="pdf-row"><span>Tax and Insurance</span><span>${formatCurrencyPDF(cv.taxesAndInsurance)}</span></div>
+        <div class="pdf-row"><span>Annual HOA</span><span>${formatCurrencyPDF(cv.annualHOA)}</span></div>
+        <div class="pdf-row"><span>Annual Repair and Maint</span><span>${formatCurrencyPDF(cv.annualRepair)}</span></div>
+        <div class="pdf-row"><span>Annual Utilities</span><span>${formatCurrencyPDF(cv.annualUtilities)}</span></div>
+
+        <div class="pdf-sub-title">Overview</div>
+        <div class="pdf-divider"></div>
+        <div class="pdf-row"><span>Operating Expenses</span><span>${formatCurrencyPDF(cv.operatingExpenses)}</span></div>
+        <div class="pdf-row pdf-negative"><span>Net Operating Income</span><span>${formatCurrencyPDF(cv.netOperatingIncome)}</span></div>
+        <div class="pdf-row"><span>Net Monthly Cashflow</span><span>${formatCurrencyPDF(cv.netMonthlyCashflow)}</span></div>
+        <div class="pdf-row"><span>Cap Rate</span><span>${cv.capRate.toFixed(1)}%</span></div>
+        <div class="pdf-row"><span>Cash On Cash Return</span><span>${cv.cashOnCashReturn.toFixed(1)}%</span></div>
+        <div class="pdf-row"><span>DSCR*</span><span>${cv.dscr.toFixed(2)}</span></div>
+
+        <div class="pdf-section-gap"></div>
+        <div class="pdf-row"><span>Total Closing Cost</span><span>${formatCurrencyPDF(cv.totalClosingCost)}</span></div>
+        <div class="pdf-row"><span>Cash Needed to Close</span><span>${formatCurrencyPDF(cv.cashNeededToClose)}</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="pdf-footer">
+  Disclaimer: This calculator provides estimates only. Consult professionals before making investment decisions.
+</div>
+<div class="pdf-bar"></div>
+</div>`;
+    }
+
     function downloadPDF() {
-        // Check if jsPDF is loaded
-        if (!window.jspdf) {
+        if (!window.html2pdf) {
             alert('PDF library not loaded. Please refresh the page and try again.');
-            console.error('jsPDF library not found');
             return;
         }
-        
-        // Check if calculated values exist
+
         if (!calculatedValues || Object.keys(calculatedValues).length === 0) {
             alert('Please calculate values first before downloading PDF.');
-            console.error('No calculated values available');
             return;
         }
-        
-        // Get logo URL (you can customize this path)
-        const logoUrl = 'assets/images/logo.png'; // Update this path to your logo
-        
-        // Load logo first, then generate PDF
-        loadLogoImage(logoUrl).then(function(logoData) {
-            // Logo loaded successfully, proceed with PDF generation
-            createPDF(null, logoData);
-        }).catch(function(error) {
-            // Logo failed to load, generate PDF without logo (will use fallback)
-            console.warn('Logo not loaded, using fallback:', error);
-            createPDF(null, null);
-        });
-    }
-    
-    function createPDF(userData, logoImageData) {
+
         try {
-            // Check for jsPDF library
-            let jsPDF;
-            if (typeof window.jspdf !== 'undefined') {
-                jsPDF = window.jspdf.jsPDF;
-            } else if (typeof window.jsPDF !== 'undefined') {
-                jsPDF = window.jsPDF;
-            } else {
-                throw new Error('jsPDF library not loaded');
-            }
-            
-            const doc = new jsPDF();
-        
-            // Helper function for currency formatting
-            function formatCurrencyPDF(value) {
-                return '$' + Math.round(value).toLocaleString('en-US');
-            }
-            
-            // Colors matching Express Capital Financing logo
-            const primaryColor = [34, 139, 34]; // Dark green (matching logo)
-            const highlightColor = [255, 193, 7]; // Gold/Mustard yellow (matching logo)
-            const textColor = [51, 51, 51];
-            const lightGray = [245, 245, 245];
-            const white = [255, 255, 255];
-            const darkGray = [64, 64, 64];
-            
-            let yPos = 20;
-            
-            // Header with company branding - Light background
-            const lightBgColor = [248, 249, 250]; // Light gray background
-            doc.setFillColor(...lightBgColor);
-            doc.rect(0, 0, 210, 80, 'F');
-            
-            // Add border line at bottom of header
-            doc.setDrawColor(200, 200, 200);
-            doc.setLineWidth(0.5);
-            doc.line(10, 80, 200, 80);
-            
-            // Logo on left side
-            const logoX = 15;
-            const logoY = 15;
-            const logoWidth = 70;
-            const logoHeight = 25;
-            
-            // Add logo image if available, otherwise use fallback text
-            if (logoImageData) {
-                try {
-                    doc.addImage(logoImageData, 'PNG', logoX, logoY, logoWidth, logoHeight);
-                } catch (e) {
-                    console.error('Error adding logo image to PDF:', e);
-                    // Fall through to fallback
-                    addTextLogo();
-                }
-            } else {
-                // Fallback: Text-based logo if image not available
-                addTextLogo();
-            }
-            
-            function addTextLogo() {
-                doc.setFontSize(18);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...primaryColor); // Dark green
-                doc.text('EXPRESS', logoX, logoY + 8);
-                doc.setFontSize(16);
-                doc.text('CAPITAL', logoX, logoY + 18);
-                doc.setFontSize(14);
-                doc.setTextColor(100, 100, 100); // Dark gray
-                doc.text('FINANCING', logoX, logoY + 28);
-            }
-            
-            // Contact information on right side
-            const contactX = 200; // Right edge of page
-            const contactY = 15;
-            
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...textColor);
-            doc.text('Contact Information', contactX, contactY, { align: 'right' });
-            
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Phone: (718) 285-0806', contactX, contactY + 8, { align: 'right' });
-            doc.text('Email: info@expresscapitalfinancing.com', contactX, contactY + 15, { align: 'right' });
-            
-            // Office addresses
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'bold');
-            doc.text('New York Office:', contactX, contactY + 25, { align: 'right' });
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
-            doc.text('14 53rd St, #408N', contactX, contactY + 31, { align: 'right' });
-            doc.text('Brooklyn, NY 11232', contactX, contactY + 37, { align: 'right' });
-            
-            // Report title section with gold highlight
-            yPos = 60;
-            doc.setFillColor(...highlightColor);
-            doc.rect(0, yPos - 5, 210, 15, 'F');
-            doc.setTextColor(0, 0, 0); // Black text on gold
-            doc.setFontSize(18);
-            doc.setFont('helvetica', 'bold');
-            doc.text('DSCR Rental Calculator Report', 105, yPos + 5, { align: 'center' });
-            
-            yPos = 90;
-            doc.setTextColor(...textColor);
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Generated on: ' + new Date().toLocaleDateString(), 10, yPos);
-            
-            // Get input values
-            const getInputVal = (id) => parseFloat(app.querySelector(`[data-id="${id}"] input[type="number"]`).value) || 0;
-            const inputPrice = getInputVal('price');
-            const inputUnits = getInputVal('units') || 1;
-            const inputLTV = getInputVal('ltv');
-            const inputRate = getInputVal('rate');
-            const inputTerm = getInputVal('term') || 30;
-            const inputOrigination = getInputVal('origination');
-            
-            // Key Results Section (Highlighted with gold)
-            yPos += 15;
-            doc.setFillColor(...highlightColor);
-            doc.rect(10, yPos - 5, 190, 65, 'F');
-            doc.setFontSize(16);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(0, 0, 0); // Black text on gold background
-            doc.text('Key Results', 15, yPos + 5);
-            
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            
-            const keyResults = [
-                { label: 'DSCR', value: calculatedValues.dscr.toFixed(2), x: 15 },
-                { label: 'Cash on Cash Return', value: calculatedValues.cashOnCashReturn.toFixed(2) + '%', x: 110 },
-                { label: 'Cap Rate', value: calculatedValues.capRate.toFixed(2) + '%', x: 15 },
-                { label: 'Net Monthly Cashflow', value: formatCurrencyPDF(calculatedValues.netMonthlyCashflow), x: 110 },
-                { label: 'Cash Needed to Close', value: formatCurrencyPDF(calculatedValues.cashNeededToClose), x: 15 },
-                { label: 'Net Operating Income', value: formatCurrencyPDF(calculatedValues.netOperatingIncome), x: 110 }
-            ];
-            
-            let resultY = yPos + 15;
-            keyResults.forEach((result, index) => {
-                // Layout for 6 items: 2 columns, 3 rows
-                if (index === 2) {
-                    resultY += 12; // Move to second row
-                } else if (index === 4) {
-                    resultY += 12; // Move to third row
-                }
-                doc.setTextColor(0, 0, 0); // Black text on gold background
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(11);
-                doc.text(result.label + ':', result.x, resultY);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...primaryColor); // Dark green for values
-                doc.text(result.value, result.x + 60, resultY);
+            const htmlContent = buildPdfHtml();
+
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'absolute';
+            wrapper.style.left = '0';
+            wrapper.style.top = '0';
+            wrapper.style.width = '1000px';
+            wrapper.style.zIndex = '-9999';
+            wrapper.style.overflow = 'hidden';
+            wrapper.style.background = '#ffffff';
+            wrapper.innerHTML = htmlContent;
+            document.body.appendChild(wrapper);
+
+            const pdfContent = wrapper.querySelector('#pdf-report');
+
+            const opt = {
+                margin: 0,
+                filename: 'DSCR_Calculator_Report.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    width: 1000,
+                    scrollX: 0,
+                    scrollY: 0
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(pdfContent).save().then(function () {
+                document.body.removeChild(wrapper);
+            }).catch(function (err) {
+                console.error('PDF generation error:', err);
+                document.body.removeChild(wrapper);
+                alert('Error generating PDF: ' + err.message);
             });
-            
-            yPos += 70;
-            
-            // Financial Breakdown
-            doc.setFillColor(...primaryColor); // Dark green background
-            doc.rect(10, yPos - 5, 190, 8, 'F');
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...white); // White text on dark green
-            doc.text('Financial Breakdown', 15, yPos + 1);
-            doc.setTextColor(...textColor); // Reset to dark text
-            
-            yPos += 10;
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'normal');
-            const financialData = [
-                { label: 'Purchase Price', value: formatCurrencyPDF(inputPrice) },
-                { label: 'Number of Units', value: inputUnits.toString() },
-                { label: 'Price per Unit', value: formatCurrencyPDF(calculatedValues.pricePerUnit) },
-                { label: 'LTV (%)', value: inputLTV.toFixed(2) + '%' },
-                { label: 'Loan Amount', value: formatCurrencyPDF(calculatedValues.loanAmount) },
-                { label: 'Down Payment', value: formatCurrencyPDF(calculatedValues.downPayment) },
-                { label: 'Monthly Payment (P&I)', value: formatCurrencyPDF(calculatedValues.monthlyPI) },
-                { label: 'PITIA', value: formatCurrencyPDF(calculatedValues.pitia) },
-                { label: 'Annual Mortgage Payment', value: formatCurrencyPDF(calculatedValues.annualMortgagePayment) },
-                { label: 'Origination Fee Amount', value: formatCurrencyPDF(calculatedValues.originationFeeAmount) },
-                { label: 'Loan Closing Fees', value: formatCurrencyPDF(getInputVal('closing-fees')) },
-                { label: '3rd Party Closing Cost', value: formatCurrencyPDF(getInputVal('third-party')) },
-                { label: 'Total Closing Cost', value: formatCurrencyPDF(calculatedValues.totalClosingCost) },
-                { label: 'Cash Needed to Close', value: formatCurrencyPDF(calculatedValues.cashNeededToClose) }
-            ];
-            
-            financialData.forEach((item) => {
-                if (yPos > 250) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                doc.setTextColor(...textColor);
-                doc.setFont('helvetica', 'normal');
-                doc.text(item.label + ':', 15, yPos);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...primaryColor); // Dark green for values
-                doc.text(item.value, 150, yPos);
-                doc.setFont('helvetica', 'normal');
-                yPos += 8;
-            });
-            
-            // Rental Income & Expenses
-            yPos += 5;
-            doc.setFillColor(...primaryColor); // Dark green background
-            doc.rect(10, yPos - 5, 190, 8, 'F');
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...white); // White text on dark green
-            doc.text('Rental Income & Expenses', 15, yPos + 1);
-            doc.setTextColor(...textColor); // Reset to dark text
-            
-            yPos += 10;
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'normal');
-            const rentalData = [
-                { label: 'Gross Monthly Rental Income', value: formatCurrencyPDF(calculatedValues.grossMonthlyRentalIncome) },
-                { label: 'Annual Rental Income', value: formatCurrencyPDF(calculatedValues.annualRentalIncome) },
-                { label: 'Vacancy Rate (%)', value: getInputVal('vacancy').toFixed(2) + '%' },
-                { label: 'Vacancy Deduction', value: formatCurrencyPDF(calculatedValues.vacancyDeduction) },
-                { label: 'Net Effective Rent', value: formatCurrencyPDF(calculatedValues.netEffectiveRent) },
-                { label: 'Property Taxes', value: formatCurrencyPDF(getInputVal('taxes')) },
-                { label: 'Insurance', value: formatCurrencyPDF(getInputVal('insurance')) },
-                { label: 'Taxes and Insurance', value: formatCurrencyPDF(calculatedValues.taxesAndInsurance) },
-                { label: 'Monthly HOA', value: formatCurrencyPDF(getInputVal('hoa')) },
-                { label: 'Annual HOA', value: formatCurrencyPDF(calculatedValues.annualHOA) },
-                { label: 'Annual Repairs and Maintenance', value: formatCurrencyPDF(calculatedValues.annualRepair) },
-                { label: 'Annual Utilities', value: formatCurrencyPDF(calculatedValues.annualUtilities) }
-            ];
-            
-            rentalData.forEach((item) => {
-                if (yPos > 250) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                doc.setTextColor(...textColor);
-                doc.setFont('helvetica', 'normal');
-                doc.text(item.label + ':', 15, yPos);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...primaryColor); // Dark green for values
-                doc.text(item.value, 150, yPos);
-                doc.setFont('helvetica', 'normal');
-                yPos += 8;
-            });
-            
-            // Operating Results
-            yPos += 5;
-            doc.setFillColor(...primaryColor); // Dark green background
-            doc.rect(10, yPos - 5, 190, 8, 'F');
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...white); // White text on dark green
-            doc.text('Operating Results', 15, yPos + 1);
-            doc.setTextColor(...textColor); // Reset to dark text
-            
-            yPos += 10;
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'normal');
-            const operatingData = [
-                { label: 'Operating Expenses', value: formatCurrencyPDF(calculatedValues.operatingExpenses) },
-                { label: 'Net Operating Income', value: formatCurrencyPDF(calculatedValues.netOperatingIncome) },
-                { label: 'Net Monthly Cashflow', value: formatCurrencyPDF(calculatedValues.netMonthlyCashflow) },
-                { label: 'Cap Rate', value: calculatedValues.capRate.toFixed(2) + '%' },
-                { label: 'Cash on Cash Return', value: calculatedValues.cashOnCashReturn.toFixed(2) + '%' },
-                { label: 'DSCR', value: calculatedValues.dscr.toFixed(2) }
-            ];
-            
-            operatingData.forEach((item) => {
-                if (yPos > 250) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                doc.setTextColor(...textColor);
-                doc.setFont('helvetica', 'normal');
-                doc.text(item.label + ':', 15, yPos);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...primaryColor); // Dark green for values
-                doc.text(item.value, 150, yPos);
-                doc.setFont('helvetica', 'normal');
-                yPos += 8;
-            });
-            
-            // Footer
-            const pageCount = doc.internal.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(128, 128, 128);
-                doc.text('Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
-                doc.text('Disclaimer: This calculator provides estimates only. Consult with financial and real estate professionals before making investment decisions.', 105, 285, { align: 'center', maxWidth: 190 });
-            }
-            
-            // Download PDF
-            const fileName = 'DSCR-Calculator-Report-' + new Date().getTime() + '.pdf';
-            doc.save(fileName);
-        
-            // Save PDF
-            doc.save('DSCR_Calculator_Report.pdf');
         } catch (error) {
             console.error('Error generating PDF:', error);
             alert('Error generating PDF: ' + error.message);
         }
     }
-    
+
     // Add PDF download button event
     const pdfBtn = app.querySelector('#downloadPdfBtn') || app.querySelector('.cta.secondary');
     if (pdfBtn) {
-        pdfBtn.addEventListener('click', function(e) {
+        pdfBtn.addEventListener('click', function (e) {
             e.preventDefault();
             console.log('PDF button clicked');
             try {
@@ -620,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.error('PDF button not found');
     }
-    
+
     // Final init
     calculate();
 });
