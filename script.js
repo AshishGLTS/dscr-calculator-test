@@ -292,27 +292,26 @@ document.addEventListener('DOMContentLoaded', function () {
         return `
 <style>
   #pdf-report * { margin: 0; padding: 0; box-sizing: border-box; }
-  #pdf-report { font-family: "Segoe UI", Arial, sans-serif; background: #fff; width: 1000px; color: #333; display: flex; flex-direction: column; min-height: 1415px; }
-  #pdf-report .pdf-container { max-width: 1000px; margin: 0; background: #ffffff; padding: 0; flex: 1; }
-  #pdf-report .pdf-header { background: #3c4a5d; height: 120px; position: relative; width: 100%; }
-  #pdf-report .pdf-logo-box { position: absolute; bottom: 0; left: 0; background: #ffffff; width: 260px; height: 100px; border-radius: 0 14px 0 0; display: flex; align-items: center; justify-content: center; padding: 10px 15px; }
+  #pdf-report { font-family: "Segoe UI", Arial, sans-serif; background: #fff; width: 1000px; color: #333; display: flex; flex-direction: column; height: 1410px; max-height: 1410px; overflow: hidden; }
+  #pdf-report .pdf-container { max-width: 1000px; margin: 0; background: #ffffff; padding: 0; flex: 1; display: flex; flex-direction: column; }
+  #pdf-report .pdf-header { background: #3c4a5d; height: 110px; position: relative; width: 100%; flex-shrink: 0; }
+  #pdf-report .pdf-logo-box { position: absolute; bottom: 0; left: 0; background: #ffffff; width: 260px; height: 95px; border-radius: 0 14px 0 0; display: flex; align-items: center; justify-content: center; padding: 8px 15px; }
   #pdf-report .pdf-logo-box img { max-height: 100%; }
-  #pdf-report .pdf-contact { position: absolute; top: 38px; right: 40px; color: #ffffff; font-size: 13px; text-align: right; line-height: 1.6; }
+  #pdf-report .pdf-contact { position: absolute; top: 32px; right: 40px; color: #ffffff; font-size: 15px; text-align: right; line-height: 1.6; }
   #pdf-report .pdf-contact-row { display: flex; justify-content: flex-end; gap: 10px; }
   #pdf-report .pdf-label { font-weight: 600; }
-  #pdf-report .pdf-title { position: absolute; bottom: -22px; left: 65%; transform: translateX(-50%); background: #1e7a52; color: white; padding: 10px 40px; border-radius: 8px; font-weight: bold; font-size: 18px; z-index: 10; white-space: nowrap; }
-  #pdf-report .pdf-main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px 15px; margin-top: 30px; }
-  #pdf-report .pdf-column { display: flex; flex-direction: column; gap: 20px; }
-  #pdf-report .pdf-card { background: #fafafa; border: 1px solid #d9c7a3; padding: 14px 16px; display: flex; flex-direction: column; }
-  #pdf-report .pdf-section-gap { height: 12px; }
-  #pdf-report .pdf-card h3 { margin: 0 0 8px; font-size: 14px; border-bottom: 1px solid #d6c7b2; padding-bottom: 5px; color: #333; }
-  #pdf-report .pdf-sub-title { font-weight: bold; margin: 6px 0 3px; font-size: 13px; }
-  #pdf-report .pdf-row { display: flex; justify-content: space-between; font-size: 12px; margin: 4px 0; }
+  #pdf-report .pdf-title { position: absolute; bottom: -20px; left: 65%; transform: translateX(-50%); background: #1e7a52; color: white; padding: 8px 40px; border-radius: 8px; font-weight: bold; font-size: 20px; z-index: 10; white-space: nowrap; }
+  #pdf-report .pdf-main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 8px 15px; margin-top: 28px; flex: 1; }
+  #pdf-report .pdf-column { display: flex; flex-direction: column; gap: 10px; }
+  #pdf-report .pdf-card { background: #fafafa; border: 1px solid #d9c7a3; padding: 10px 14px; display: flex; flex-direction: column; }
+  #pdf-report .pdf-section-gap { height: 6px; }
+  #pdf-report .pdf-card h3 { margin: 0 0 6px; font-size: 18px; border-bottom: 1px solid #d6c7b2; padding-bottom: 4px; color: #333; }
+  #pdf-report .pdf-sub-title { font-weight: bold; margin: 4px 0 2px; font-size: 17px; }
+  #pdf-report .pdf-row { display: flex; justify-content: space-between; font-size: 16px; margin: 2px 0; }
   #pdf-report .pdf-positive span:last-child { color: #1a8f3c; font-weight: bold; }
   #pdf-report .pdf-negative span:last-child { color: #b33939; }
   #pdf-report .pdf-divider { border-top: 1px solid #d6c7b2; margin: 6px 0; }
-  #pdf-report .pdf-footer { text-align: center; font-size: 14px; padding: 10px 15px; color: #777; font-style: italic; margin-top: auto; }
-  #pdf-report .pdf-bar { display: block; height: 10px; background: #3c4a5d; }
+  #pdf-report .pdf-footer { text-align: center; font-size: 14px; padding: 10px 15px; color: #777; font-style: italic; margin-top: auto; margin-bottom: 20px; }
 </style>
 <div id="pdf-report">
 <div class="pdf-container">
@@ -427,7 +426,6 @@ document.addEventListener('DOMContentLoaded', function () {
 <div class="pdf-footer">
   Disclaimer: This calculator provides estimates only. Consult professionals before making investment decisions.
 </div>
-<div class="pdf-bar"></div>
 </div>`;
     }
 
@@ -436,7 +434,6 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('PDF library not loaded. Please refresh the page and try again.');
             return;
         }
-
         if (!calculatedValues || Object.keys(calculatedValues).length === 0) {
             alert('Please calculate values first before downloading PDF.');
             return;
@@ -444,7 +441,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const htmlContent = buildPdfHtml();
-
             const wrapper = document.createElement('div');
             wrapper.style.position = 'absolute';
             wrapper.style.left = '0';
@@ -457,19 +453,11 @@ document.addEventListener('DOMContentLoaded', function () {
             document.body.appendChild(wrapper);
 
             const pdfContent = wrapper.querySelector('#pdf-report');
-
             const opt = {
                 margin: 0,
                 filename: 'DSCR_Calculator_Report.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    width: 1000,
-                    scrollX: 0,
-                    scrollY: 0
-                },
+                html2canvas: { scale: 2, useCORS: true, letterRendering: true, width: 1000, scrollX: 0, scrollY: 0 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
@@ -486,21 +474,197 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Add PDF download button event
+    const leadModal = document.getElementById('dscr-lead-modal');
+    const leadName = document.getElementById('dscr-lead-name');
+    const leadEmail = document.getElementById('dscr-lead-email');
+    const leadCancel = document.getElementById('dscr-lead-cancel');
+    const leadSubmit = document.getElementById('dscr-lead-submit');
+    const leadError = document.getElementById('dscr-lead-error');
+    const leadLoading = document.getElementById('dscr-lead-loading');
     const pdfBtn = app.querySelector('#downloadPdfBtn') || app.querySelector('.cta.secondary');
-    if (pdfBtn) {
+
+    if (pdfBtn && leadModal) {
         pdfBtn.addEventListener('click', function (e) {
             e.preventDefault();
-            console.log('PDF button clicked');
-            try {
-                downloadPDF();
-            } catch (error) {
-                console.error('Error generating PDF:', error);
-                alert('Error generating PDF. Please check the console for details.');
+            if (!calculatedValues || Object.keys(calculatedValues).length === 0) {
+                alert('Please calculate values first before downloading PDF.');
+                return;
             }
+            leadModal.style.display = 'flex';
         });
-    } else {
-        console.error('PDF button not found');
+
+        leadCancel.addEventListener('click', function() {
+            leadModal.style.display = 'none';
+            leadError.style.display = 'none';
+            leadLoading.style.display = 'none';
+            leadName.value = '';
+            leadEmail.value = '';
+        });
+
+        leadSubmit.addEventListener('click', function(e) {
+            e.preventDefault();
+            const name = leadName.value.trim();
+            const email = leadEmail.value.trim();
+            
+            if (!name || !email) {
+                showError('Please provide both your name and email.');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('Please enter a valid email address.');
+                return;
+            }
+
+            leadError.style.display = 'none';
+            leadLoading.style.display = 'block';
+            leadSubmit.disabled = true;
+            leadCancel.disabled = true;
+
+            generateAndSendPdf(name, email);
+        });
+
+        function generateAndSendPdf(name, email) {
+            try {
+                const htmlContent = buildPdfHtml();
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.left = '0';
+                wrapper.style.top = '0';
+                wrapper.style.width = '1000px';
+                wrapper.style.zIndex = '-9999';
+                wrapper.style.overflow = 'hidden';
+                wrapper.style.background = '#ffffff';
+                wrapper.innerHTML = htmlContent;
+                document.body.appendChild(wrapper);
+
+                const pdfContent = wrapper.querySelector('#pdf-report');
+                const opt = {
+                    margin: 0,
+                    filename: 'DSCR_Calculator_Report.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, letterRendering: true, width: 1000, scrollX: 0, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(pdfContent).outputPdf('datauristring').then(function(pdfBase64) {
+                    if (typeof dscrAjax !== 'undefined') {
+                        const getInputValStr = (id) => {
+                            const el = app.querySelector(`[data-id="${id}"] input[type="text"]`);
+                            return el ? el.value : '0';
+                        };
+                        const formatCurrencyPDF = (value) => '$' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        
+                        const cv = calculatedValues;
+                        const fd = {
+                            fullName: name,
+                            email: email,
+                            purchaseOr: 'Purchase',
+                            purchasePrice: formatCurrencyPDF(getInputValStr('price')),
+                            numberOf119: '1',
+                            ltv120: getInputValStr('ltv') + '%',
+                            number121: getInputValStr('rate') + '%',
+                            number122: getInputValStr('term') || '30',
+                            number123: getInputValStr('origination') + '%',
+                            loanClosing: formatCurrencyPDF(getInputValStr('closing-fees')),
+                            typeA153: formatCurrencyPDF(getInputValStr('rent')),
+                            vacancyRate152: getInputValStr('vacancy') + '%',
+                            propertyTaxes: formatCurrencyPDF(getInputValStr('taxes')),
+                            insurance: formatCurrencyPDF(getInputValStr('insurance')),
+                            monthlyHoa: formatCurrencyPDF(getInputValStr('hoa')),
+                            annualRepairs: formatCurrencyPDF(getInputValStr('repair')),
+                            annualUtilities: formatCurrencyPDF(getInputValStr('utilities')),
+                            thirdParty: formatCurrencyPDF(getInputValStr('third-party')),
+                            pricePer89: formatCurrencyPDF(cv.pricePerUnit),
+                            loanamount: formatCurrencyPDF(cv.loanAmount),
+                            downPayment: formatCurrencyPDF(cv.downPayment),
+                            monthlyPayment92: formatCurrencyPDF(cv.monthlyPI),
+                            typeA93: formatCurrencyPDF(cv.pitia),
+                            typeA94: formatCurrencyPDF(cv.annualMortgagePayment),
+                            typeA95: formatCurrencyPDF(cv.originationFeeAmount),
+                            grossMonthly96: formatCurrencyPDF(cv.grossMonthlyRentalIncome),
+                            typeA99: formatCurrencyPDF(cv.vacancyDeduction),
+                            typeA99_2: formatCurrencyPDF(cv.netEffectiveRent),
+                            taxesAnd100: formatCurrencyPDF(cv.taxesAndInsurance),
+                            typeA101: formatCurrencyPDF(cv.annualHOA),
+                            typeA102: formatCurrencyPDF(cv.annualRepair),
+                            typeA103: formatCurrencyPDF(cv.annualUtilities),
+                            operatingExpenses104: formatCurrencyPDF(cv.operatingExpenses),
+                            typeA105: formatCurrencyPDF(cv.netOperatingIncome),
+                            typeA106: formatCurrencyPDF(cv.netMonthlyCashflow),
+                            typeA107: cv.capRate.toFixed(2) + '%',
+                            typeA108: cv.cashOnCashReturn.toFixed(2) + '%',
+                            typeA109: cv.dscr.toFixed(2),
+                            typeA110: formatCurrencyPDF(cv.totalClosingCost),
+                            typeA111: formatCurrencyPDF(cv.cashNeededToClose)
+                        };
+
+                        const formData = new URLSearchParams();
+                        formData.append('action', 'dscr_submit_lead');
+                        formData.append('nonce', dscrAjax.nonce);
+                        formData.append('name', name);
+                        formData.append('email', email);
+                        formData.append('pdf_data', pdfBase64);
+                        formData.append('form_data', JSON.stringify(fd));
+
+                        fetch(dscrAjax.url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: formData.toString()
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            console.log("Server response:", data);
+                            finalizeDownload(opt, pdfContent, wrapper);
+                        })
+                        .catch(err => {
+                            console.error("Ajax Error:", err);
+                            finalizeDownload(opt, pdfContent, wrapper);
+                        });
+                    } else {
+                        // Fallback if WP ajax is completely missing
+                        finalizeDownload(opt, pdfContent, wrapper);
+                    }
+                });
+            } catch (err) {
+                showError('Error preparing PDF: ' + err.message);
+            }
+        }
+
+        function finalizeDownload(opt, pdfContent, wrapper) {
+            html2pdf().set(opt).from(pdfContent).save().then(function () {
+                document.body.removeChild(wrapper);
+                hideModal();
+            }).catch(function (err) {
+                document.body.removeChild(wrapper);
+                showError('Error downloading PDF: ' + err.message);
+            });
+        }
+
+        function hideModal() {
+            if(leadModal) {
+                leadModal.style.display = 'none';
+                leadLoading.style.display = 'none';
+                leadSubmit.disabled = false;
+                leadCancel.disabled = false;
+                leadName.value = '';
+                leadEmail.value = '';
+            }
+        }
+
+        function showError(msg) {
+            leadError.style.display = 'block';
+            leadError.textContent = msg;
+            leadSubmit.disabled = false;
+            leadCancel.disabled = false;
+            leadLoading.style.display = 'none';
+        }
+
+    } else if (pdfBtn) {
+        // Fallback for static HTML without modal injected
+        pdfBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            try { downloadPDF(); } catch (err) { alert(err.message); }
+        });
     }
 
     // Final init

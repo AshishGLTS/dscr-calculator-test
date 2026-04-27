@@ -408,6 +408,52 @@
         </div>
     </div>
 
+    <!-- Popup Modal -->
+    <div id="dscr-lead-modal" class="dscr-modal" style="display: none;">
+        <div class="dscr-modal-content">
+            <h3 style="margin-top:0;">Download Your PDF Report</h3>
+            <p style="font-size:14px;color:#6b7280;margin-bottom:15px;">Please enter your details below to get your free DSCR report emailed to you.</p>
+            <div class="dscr-field-group">
+                <label>Name</label>
+                <input type="text" id="dscr-lead-name" class="regular-text" style="width:100%; border:1px solid #ccc; padding:8px; border-radius:6px; box-sizing:border-box;" required/>
+            </div>
+            <div class="dscr-field-group" style="margin-top:10px;">
+                <label>Email</label>
+                <input type="email" id="dscr-lead-email" class="regular-text" style="width:100%; border:1px solid #ccc; padding:8px; border-radius:6px; box-sizing:border-box;" required/>
+            </div>
+            <div class="dscr-modal-actions" style="margin-top:20px; display:flex; justify-content:space-between; gap:10px;">
+                <button type="button" id="dscr-lead-cancel" class="cta secondary" style="flex:1;">Cancel</button>
+                <button type="button" id="dscr-lead-submit" class="cta" style="flex:1;">Download PDF</button>
+            </div>
+            <div id="dscr-lead-error" style="color:red; font-size:13px; margin-top:10px; display:none;"></div>
+            <div id="dscr-lead-loading" style="color:#0b6e3d; font-size:13px; margin-top:10px; display:none;">Processing... Please wait. Connecting...</div>
+        </div>
+    </div>
+    
+    <style>
+        .dscr-modal {
+            position: fixed;
+            z-index: 99999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dscr-modal-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            color: #1f2937;
+        }
+    </style>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="script.js"></script>
 </body>

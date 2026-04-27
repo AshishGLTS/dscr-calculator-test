@@ -2,12 +2,340 @@
 /**
  * Plugin Name: DSCR Rental Calculator Test
  * Description: A real-time Debt Service Coverage Ratio (DSCR) calculator for real estate investors.
- * Version: 1.3
+ * Version: 1.3.5
  * Author: GLTS
  */
 
 if (!defined('ABSPATH')) {
     exit;
+}
+
+// Include Constant Contact Integration
+require_once plugin_dir_path(__FILE__) . 'dscr-constantcontact.php';
+
+// --- DB Setup on Plugin Activation ---
+register_activation_hook(__FILE__, 'dscr_create_leads_table');
+function dscr_create_leads_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'dscr_leads';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE $table_name (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+        name varchar(255) NOT NULL,
+        email varchar(255) NOT NULL,
+        PRIMARY KEY  (id)
+    ) $charset_collate;";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+// --- Admin Menu and Settings ---
+add_action('admin_menu', 'dscr_setup_admin_menu');
+function dscr_setup_admin_menu() {
+    add_menu_page('DSCR Settings', 'DSCR Calculator', 'manage_options', 'dscr-calculator', 'dscr_admin_page_callback', 'dashicons-calculator');
+}
+
+
+function dscr_admin_page_callback() {
+    if (!current_user_can('manage_options')) return;
+
+    // Handle settings save
+    if (isset($_POST['dscr_save_settings']) && check_admin_referer('dscr_settings_action', 'dscr_settings_nonce')) {
+        update_option('dscr_lead_email', sanitize_email($_POST['dscr_lead_email']));
+        update_option('dscr_user_email_subject', sanitize_text_field($_POST['dscr_user_email_subject']));
+        update_option('dscr_user_email_body', wp_kses_post($_POST['dscr_user_email_body']));
+        update_option('dscr_lead_email_subject', sanitize_text_field($_POST['dscr_lead_email_subject']));
+        update_option('dscr_lead_email_body', wp_kses_post($_POST['dscr_lead_email_body']));
+        echo '<div class="updated"><p>Settings saved.</p></div>';
+    }
+
+    $default_user_subject = 'Your Rental Property Report Is Here!';
+    $default_user_body = "Hi {name},\n\nCongratulations on taking the first step in maximizing the return on your rental property by using our DSCR Calculator.\n\nWe've put together a handy PDF summary of your report. It's packed with all the essential details you need - from estimated interest payments to projected ROI. Think of it as your project's financial roadmap, ready for you to explore!\n\nHave questions or want to chat about your report? Our expert team is here and eager to help. Just reply to this email or <a href=\"tel:3475886460\" class=\"highlight\">call us at (347)588-6460</a>.\n\nWe're thrilled to be part of your fix-and-flip journey and can't wait to celebrate your success!\n\nHappy flipping!\n\nYour Partners at Express Capital Financing";
+
+    $lead_email = get_option('dscr_lead_email', get_option('admin_email'));
+    $user_subject = get_option('dscr_user_email_subject', $default_user_subject);
+    if ($user_subject === 'Your DSCR Calculator Results') {
+        $user_subject = $default_user_subject;
+    }
+    
+    $user_body = get_option('dscr_user_email_body', $default_user_body);
+    if (trim($user_body) === "Hello,\n\nHere is the PDF report for your DSCR calculation.\n\nThank you!" || trim($user_body) === "Hello,
+
+Here is the PDF report for your DSCR calculation.
+
+Thank you!") {
+        $user_body = $default_user_body;
+    }
+
+    $lead_subject = get_option('dscr_lead_email_subject', 'New DSCR Calculator Lead');
+    $lead_body = get_option('dscr_lead_email_body', "A new lead has downloaded the DSCR PDF.\n\nName: {name}\nEmail: {email}");
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'dscr_leads';
+    // Suppress errors temporarily in case the table hasn't been created yet (activation hook issues)
+    $suppress = $wpdb->suppress_errors();
+    $logs = $wpdb->get_results("SELECT * FROM $table_name ORDER BY time DESC LIMIT 50");
+    $wpdb->suppress_errors($suppress);
+
+    ?>
+    <div class="wrap">
+        <h2>DSCR Calculator Dashboard</h2>
+        
+        <h3 style="margin-top:30px;">Email Templates & Settings</h3>
+        <form method="post" action="">
+            <?php wp_nonce_field('dscr_settings_action', 'dscr_settings_nonce'); ?>
+            <table class="form-table">
+                <tr>
+                    <th><label for="dscr_lead_email">Admin / Lead Receiver Email</label></th>
+                    <td><input type="email" name="dscr_lead_email" id="dscr_lead_email" value="<?php echo esc_attr($lead_email); ?>" class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th><label for="dscr_user_email_subject">User Email Subject</label></th>
+                    <td><input type="text" name="dscr_user_email_subject" id="dscr_user_email_subject" value="<?php echo esc_attr($user_subject); ?>" class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th><label for="dscr_user_email_body">User Email Body (Use {name} and {email})<br><small>This content will be wrapped in the structured Express Capital template with your logo.</small></label></th>
+                    <td><textarea name="dscr_user_email_body" id="dscr_user_email_body" rows="10" class="large-text"><?php echo esc_textarea($user_body); ?></textarea></td>
+                </tr>
+                <tr>
+                    <th><label for="dscr_lead_email_subject">Lead Email Subject</label></th>
+                    <td><input type="text" name="dscr_lead_email_subject" id="dscr_lead_email_subject" value="<?php echo esc_attr($lead_subject); ?>" class="regular-text"></td>
+                </tr>
+                <tr>
+                    <th><label for="dscr_lead_email_body">Lead Email Body (Use {name} and {email})</label></th>
+                    <td><textarea name="dscr_lead_email_body" id="dscr_lead_email_body" rows="5" class="large-text"><?php echo esc_textarea($lead_body); ?></textarea></td>
+                </tr>
+            </table>
+            <p class="submit">
+                <input type="submit" name="dscr_save_settings" class="button button-primary" value="Save Settings">
+            </p>
+        </form>
+
+        <h3 style="margin-top:40px;">Recent Leads Log</h3>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date/Time</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($logs)): ?>
+                    <?php foreach ($logs as $log): ?>
+                        <tr>
+                            <td><?php echo esc_html($log->id); ?></td>
+                            <td><?php echo esc_html($log->time); ?></td>
+                            <td><?php echo esc_html($log->name); ?></td>
+                            <td><?php echo esc_html($log->email); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr><td colspan="4">No leads found or table not created yet. (Try deactivating/reactivating the plugin)</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
+}
+
+
+// --- AJAX Endpoint to Send Emails ---
+add_action('wp_ajax_dscr_submit_lead', 'dscr_submit_lead_handler');
+add_action('wp_ajax_nopriv_dscr_submit_lead', 'dscr_submit_lead_handler');
+
+function dscr_submit_lead_handler() {
+    check_ajax_referer('dscr_ajax_nonce', 'nonce');
+
+    if (!isset($_POST['name']) || !isset($_POST['email']) || !isset($_POST['pdf_data'])) {
+        wp_send_json_error('Missing fields');
+        wp_die();
+    }
+
+    file_put_contents(dirname(__FILE__) . '/debug_post.txt', print_r($_POST, true) . "\nRaw Form Data: " . (isset($_POST['form_data']) ? $_POST['form_data'] : 'Not set'));
+
+    $name = sanitize_text_field($_POST['name']);
+    $email = sanitize_email($_POST['email']);
+    $pdf_b64 = isset($_POST['pdf_data']) ? $_POST['pdf_data'] : '';
+
+    if (empty($name) || empty($email) || empty($pdf_b64)) {
+        wp_send_json_error('Missing required fields.');
+    }
+
+    if (strpos($pdf_b64, 'base64,') !== false) {
+        $parts = explode('base64,', $pdf_b64);
+        $pdf_b64 = $parts[1];
+    }
+    
+    $pdf_decoded = base64_decode($pdf_b64);
+    if ($pdf_decoded === false) {
+        wp_send_json_error('Invalid PDF data.');
+    }
+
+    $upload_dir = wp_upload_dir();
+    $temp_filename = 'DSCR_Report_' . time() . '.pdf';
+    $temp_path = trailingslashit($upload_dir['basedir']) . $temp_filename;
+    file_put_contents($temp_path, $pdf_decoded);
+
+    $default_user_subject = 'Your Rental Property Report Is Here!';
+    $default_user_body = "Hi {name},\n\nCongratulations on taking the first step in maximizing the return on your rental property by using our DSCR Calculator.\n\nWe've put together a handy PDF summary of your report. It's packed with all the essential details you need - from estimated interest payments to projected ROI. Think of it as your project's financial roadmap, ready for you to explore!\n\nHave questions or want to chat about your report? Our expert team is here and eager to help. Just reply to this email or <a href=\"tel:3475886460\" class=\"highlight\">call us at (347)588-6460</a>.\n\nWe're thrilled to be part of your fix-and-flip journey and can't wait to celebrate your success!\n\nHappy flipping!\n\nYour Partners at Express Capital Financing";
+
+    // Get settings
+    $lead_email = get_option('dscr_lead_email', get_option('admin_email'));
+    $user_subject = get_option('dscr_user_email_subject', $default_user_subject);
+    if ($user_subject === 'Your DSCR Calculator Results') {
+        $user_subject = $default_user_subject;
+    }
+    
+    $user_body = get_option('dscr_user_email_body', $default_user_body);
+    if (trim($user_body) === "Hello,\n\nHere is the PDF report for your DSCR calculation.\n\nThank you!" || trim($user_body) === "Hello,
+
+Here is the PDF report for your DSCR calculation.
+
+Thank you!") {
+        $user_body = $default_user_body;
+    }
+
+    $lead_subject = get_option('dscr_lead_email_subject', 'New DSCR Calculation Lead: ' . $name);
+    if (strpos($lead_subject, 'New DSCR Calculator Lead') !== false) {
+        $lead_subject = 'New DSCR Calculation Lead: ' . $name;
+    }
+
+    $user_body_parsed = str_replace(array('{name}', '{email}'), array($name, $email), $user_body);
+
+    $logo_url = plugin_dir_url(__FILE__) . 'logo.png';
+    $fd = isset($_POST['form_data']) ? json_decode(stripslashes($_POST['form_data']), true) : array();
+    
+    // Always use the hardcoded template for the Lead Email (user requested light title, bolded values)
+    $lead_body_html = '<!DOCTYPE html>
+<html>
+<head>
+  <title>New Lead Summary</title>
+  <style>
+body { margin: 0; padding: 0; background-color: #F0EEF7; font-family: Arial, sans-serif; }
+.logo { text-align: center; padding: 30px 0 10px; }
+.logo img { max-width: 350px; }
+.card { width: 600px; max-width: 90%; margin: 0 auto 40px; background: #ffffff; border-top: 6px solid #ff5a00; padding: 25px 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.title { text-align: center; color: #6c7aa0; font-size: 18px; font-weight: normal; margin-bottom: 20px; }
+hr { border: none; border-top: 1px solid #ddd; margin-bottom: 20px; }
+.row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f9f9f9; }
+.label { color: #6c7aa0; font-weight: normal; width: 50%; font-size: 14px; }
+.value { color: #1f2a44; font-weight: bold; width: 50%; text-align: right; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <img src="' . esc_url($logo_url) . '" alt="Express Capital Financing">
+  </div>
+  <div class="card">
+    <h2 class="title">New Lead Submission</h2>
+    <hr>
+    <div class="row"><span class="label">Full Name</span><span class="value">' . esc_html(isset($fd["fullName"]) ? $fd["fullName"] : $name) . '</span></div>
+    <div class="row"><span class="label">Email</span><span class="value">' . esc_html(isset($fd["email"]) ? $fd["email"] : $email) . '</span></div>
+    <div class="row"><span class="label">Purchase or Refinance?</span><span class="value">' . esc_html(isset($fd["purchaseOr"]) ? $fd["purchaseOr"] : "Purchase") . '</span></div>
+    <div class="row"><span class="label">Purchase Price</span><span class="value">' . esc_html(isset($fd["purchasePrice"]) ? $fd["purchasePrice"] : "0") . '</span></div>
+    <div class="row"><span class="label">Number of Units</span><span class="value">' . esc_html(isset($fd["numberOf119"]) ? $fd["numberOf119"] : "1") . '</span></div>
+    <div class="row"><span class="label">LTV (%)</span><span class="value">' . esc_html(isset($fd["ltv120"]) ? $fd["ltv120"] : "") . '</span></div>
+    <div class="row"><span class="label">Interest Rate (%)</span><span class="value">' . esc_html(isset($fd["number121"]) ? $fd["number121"] : "") . '</span></div>
+    <div class="row"><span class="label">Amortization (Years)</span><span class="value">' . esc_html(isset($fd["number122"]) ? $fd["number122"] : "") . '</span></div>
+    <div class="row"><span class="label">Origination Points(%)</span><span class="value">' . esc_html(isset($fd["number123"]) ? $fd["number123"] : "") . '</span></div>
+    <div class="row"><span class="label">Loan Closing Fees</span><span class="value">' . esc_html(isset($fd["loanClosing"]) ? $fd["loanClosing"] : "") . '</span></div>
+    <div class="row"><span class="label">Total Rent</span><span class="value">' . esc_html(isset($fd["typeA153"]) ? $fd["typeA153"] : "") . '</span></div>
+    <div class="row"><span class="label">Vacancy Rate (%)</span><span class="value">' . esc_html(isset($fd["vacancyRate152"]) ? $fd["vacancyRate152"] : "") . '</span></div>
+    <div class="row"><span class="label">Property Taxes</span><span class="value">' . esc_html(isset($fd["propertyTaxes"]) ? $fd["propertyTaxes"] : "") . '</span></div>
+    <div class="row"><span class="label">Insurance</span><span class="value">' . esc_html(isset($fd["insurance"]) ? $fd["insurance"] : "") . '</span></div>
+    <div class="row"><span class="label">MONTHLY HOA</span><span class="value">' . esc_html(isset($fd["monthlyHoa"]) ? $fd["monthlyHoa"] : "") . '</span></div>
+    <div class="row"><span class="label">Annual Repairs & Maint</span><span class="value">' . esc_html(isset($fd["annualRepairs"]) ? $fd["annualRepairs"] : "") . '</span></div>
+    <div class="row"><span class="label">Annual Utilities</span><span class="value">' . esc_html(isset($fd["annualUtilities"]) ? $fd["annualUtilities"] : "") . '</span></div>
+    <div class="row"><span class="label">3rd Party Closing Cost</span><span class="value">' . esc_html(isset($fd["thirdParty"]) ? $fd["thirdParty"] : "") . '</span></div>
+    <div class="row"><span class="label">Price Per Unit</span><span class="value">' . esc_html(isset($fd["pricePer89"]) ? $fd["pricePer89"] : "") . '</span></div>
+    <div class="row"><span class="label">Loan Amount</span><span class="value">' . esc_html(isset($fd["loanamount"]) ? $fd["loanamount"] : "") . '</span></div>
+    <div class="row"><span class="label">Down Payment</span><span class="value">' . esc_html(isset($fd["downPayment"]) ? $fd["downPayment"] : "") . '</span></div>
+    <div class="row"><span class="label">Monthly Payment (P&I)</span><span class="value">' . esc_html(isset($fd["monthlyPayment92"]) ? $fd["monthlyPayment92"] : "") . '</span></div>
+    <div class="row"><span class="label">PITIA</span><span class="value">' . esc_html(isset($fd["typeA93"]) ? $fd["typeA93"] : "") . '</span></div>
+    <div class="row"><span class="label">Annual Mortgage Payment</span><span class="value">' . esc_html(isset($fd["typeA94"]) ? $fd["typeA94"] : "") . '</span></div>
+    <div class="row"><span class="label">Origination Fee Amount</span><span class="value">' . esc_html(isset($fd["typeA95"]) ? $fd["typeA95"] : "") . '</span></div>
+    <div class="row"><span class="label">Gross Monthly Rental</span><span class="value">' . esc_html(isset($fd["grossMonthly96"]) ? $fd["grossMonthly96"] : "") . '</span></div>
+    <div class="row"><span class="label">Vacancy Deduction</span><span class="value">' . esc_html(isset($fd["typeA99"]) ? $fd["typeA99"] : "") . '</span></div>
+    <div class="row"><span class="label">Net Effective Rent</span><span class="value">' . esc_html(isset($fd["typeA99_2"]) ? $fd["typeA99_2"] : "") . '</span></div>
+    <div class="row"><span class="label">Taxes & Insurance</span><span class="value">' . esc_html(isset($fd["taxesAnd100"]) ? $fd["taxesAnd100"] : "") . '</span></div>
+    <div class="row"><span class="label">Annual HOA</span><span class="value">' . esc_html(isset($fd["typeA101"]) ? $fd["typeA101"] : "") . '</span></div>
+    <div class="row"><span class="label">Operating Expenses</span><span class="value">' . esc_html(isset($fd["operatingExpenses104"]) ? $fd["operatingExpenses104"] : "") . '</span></div>
+    <div class="row"><span class="label">Net Operating Income</span><span class="value">' . esc_html(isset($fd["typeA105"]) ? $fd["typeA105"] : "") . '</span></div>
+    <div class="row"><span class="label">Net Monthly Cashflow</span><span class="value">' . esc_html(isset($fd["typeA106"]) ? $fd["typeA106"] : "") . '</span></div>
+    <div class="row"><span class="label">Cap Rate</span><span class="value">' . esc_html(isset($fd["typeA107"]) ? $fd["typeA107"] : "") . '</span></div>
+    <div class="row"><span class="label">Cash on Cash Return</span><span class="value">' . esc_html(isset($fd["typeA108"]) ? $fd["typeA108"] : "") . '</span></div>
+    <div class="row"><span class="label">DSCR</span><span class="value">' . esc_html(isset($fd["typeA109"]) ? $fd["typeA109"] : "") . '</span></div>
+    <div class="row"><span class="label">Total Closing Cost</span><span class="value">' . esc_html(isset($fd["typeA110"]) ? $fd["typeA110"] : "") . '</span></div>
+    <div class="row"><span class="label">Cash Needed to Close</span><span class="value">' . esc_html(isset($fd["typeA111"]) ? $fd["typeA111"] : "") . '</span></div>
+    <hr>
+  </div>
+</body>
+</html>';
+    $user_body_html = '<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>' . esc_html($user_subject) . '</title>
+    <style>
+body { margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif; }
+.email-container { width: 600px; max-width: 90%; margin: 30px auto; background: #ffffff; padding: 30px; border: 1px solid #ddd; }
+.logo { text-align: center; margin-bottom: 20px; }
+.logo img { max-width: 220px; height: auto; }
+.divider { border-top: 1px solid #ddd; margin: 20px 0; }
+.highlight { color: #0073e6; text-decoration: underline; font-weight: bold; }
+.content { color: #333; font-size: 14px; line-height: 1.6; }
+.content p { margin-bottom: 15px; }
+    </style>
+  </head>
+  <body>
+   <div class="email-container">
+        <div class="logo">
+            <img src="' . esc_url($logo_url) . '" alt="Express Capital Financing">
+        </div>
+        <div class="divider"></div>
+        <div class="content">
+            ' . wpautop($user_body_parsed) . '
+        </div>
+    </div>
+  </body>
+</html>';
+
+    $attachments = array($temp_path);
+    wp_mail($email, $user_subject, $user_body_html, array('Content-Type: text/html; charset=UTF-8'), $attachments);
+    wp_mail($lead_email, $lead_subject, $lead_body_html, array('Content-Type: text/html; charset=UTF-8'), $attachments);
+
+    // Constant Contact Integration
+    $name_parts = explode(' ', $name, 2);
+    $first_name = $name_parts[0];
+    $last_name  = isset($name_parts[1]) ? $name_parts[1] : '';
+    
+    try {
+        dscr_add_to_constant_contact($email, $first_name, $last_name);
+    } catch (Exception $e) {
+        error_log('DSCR CC Exception: ' . $e->getMessage());
+    }
+
+    @unlink($temp_path);
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'dscr_leads';
+    $suppress = $wpdb->suppress_errors();
+    $wpdb->insert(
+        $table_name,
+        array(
+            'time' => current_time('mysql'),
+            'name' => $name,
+            'email' => $email
+        )
+    );
+    $wpdb->suppress_errors($suppress);
+
+    wp_send_json_success('Successfully sent emails.');
 }
 
 function dscr_calc_shortcode()
@@ -747,15 +1075,65 @@ function dscr_calc_shortcode()
                 </div>
 
                 <div class="cta-group">
-                    <button class="cta secondary" id="downloadPdfBtn">Download PDF</button>
+                    <button class="cta secondary" id="downloadPdfBtn">Send Email</button>
                     <button class="cta" id="applyBtn">Apply Now</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Popup Modal -->
+    <div id="dscr-lead-modal" class="dscr-modal" style="display: none;">
+        <div class="dscr-modal-content">
+            <h3 style="margin-top:0;">Download Your PDF Report</h3>
+            <p style="font-size:14px;color:#6b7280;margin-bottom:15px;">Please enter your details below to get your free DSCR report emailed to you.</p>
+            <div class="dscr-field-group">
+                <label>Name</label>
+                <input type="text" id="dscr-lead-name" class="regular-text" style="width:100%; border:1px solid #ccc; padding:8px; border-radius:6px; box-sizing:border-box;" required/>
+            </div>
+            <div class="dscr-field-group" style="margin-top:10px;">
+                <label>Email</label>
+                <input type="email" id="dscr-lead-email" class="regular-text" style="width:100%; border:1px solid #ccc; padding:8px; border-radius:6px; box-sizing:border-box;" required/>
+            </div>
+            <div class="dscr-modal-actions" style="margin-top:20px; display:flex; justify-content:space-between; gap:10px;">
+                <button type="button" id="dscr-lead-cancel" class="cta secondary" style="flex:1;">Cancel</button>
+                <button type="button" id="dscr-lead-submit" class="cta" style="flex:1;">Download PDF</button>
+            </div>
+            <div id="dscr-lead-error" style="color:red; font-size:13px; margin-top:10px; display:none;"></div>
+            <div id="dscr-lead-loading" style="color:#0b6e3d; font-size:13px; margin-top:10px; display:none;">Processing... Please wait. Connecting...</div>
+        </div>
+    </div>
+    
+    <style>
+        .dscr-modal {
+            position: fixed;
+            z-index: 99999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dscr-modal-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            color: #1f2937;
+        }
+    </style>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
+        var dscrAjax = {
+            url: '<?php echo esc_url(admin_url('admin-ajax.php')); ?>',
+            nonce: '<?php echo wp_create_nonce('dscr_ajax_nonce'); ?>'
+        };
         var dscrPdfLogo = "<?php echo esc_js(plugin_dir_url(__FILE__) . 'logo.png'); ?>";
     </script>
     <script>
@@ -1054,27 +1432,26 @@ function dscr_calc_shortcode()
                 return `
 <style>
   #pdf-report * { margin: 0; padding: 0; box-sizing: border-box; }
-  #pdf-report { font-family: "Segoe UI", Arial, sans-serif; background: #fff; width: 1000px; color: #333; display: flex; flex-direction: column; min-height: 1415px; }
-  #pdf-report .pdf-container { max-width: 1000px; margin: 0; background: #ffffff; padding: 0; flex: 1; }
-  #pdf-report .pdf-header { background: #3c4a5d; height: 120px; position: relative; width: 100%; }
-  #pdf-report .pdf-logo-box { position: absolute; bottom: 0; left: 0; background: #ffffff; width: 260px; height: 100px; border-radius: 0 14px 0 0; display: flex; align-items: center; justify-content: center; padding: 10px 15px; }
+  #pdf-report { font-family: "Segoe UI", Arial, sans-serif; background: #fff; width: 1000px; color: #333; display: flex; flex-direction: column; height: 1410px; max-height: 1410px; overflow: hidden; }
+  #pdf-report .pdf-container { max-width: 1000px; margin: 0; background: #ffffff; padding: 0; flex: 1; display: flex; flex-direction: column; }
+  #pdf-report .pdf-header { background: #3c4a5d; height: 110px; position: relative; width: 100%; flex-shrink: 0; }
+  #pdf-report .pdf-logo-box { position: absolute; bottom: 0; left: 0; background: #ffffff; width: 260px; height: 95px; border-radius: 0 14px 0 0; display: flex; align-items: center; justify-content: center; padding: 8px 15px; }
   #pdf-report .pdf-logo-box img { max-height: 100%; }
-  #pdf-report .pdf-contact { position: absolute; top: 38px; right: 40px; color: #ffffff; font-size: 13px; text-align: right; line-height: 1.6; }
+  #pdf-report .pdf-contact { position: absolute; top: 32px; right: 40px; color: #ffffff; font-size: 15px; text-align: right; line-height: 1.6; }
   #pdf-report .pdf-contact-row { display: flex; justify-content: flex-end; gap: 10px; }
   #pdf-report .pdf-label { font-weight: 600; }
-  #pdf-report .pdf-title { position: absolute; bottom: -22px; left: 65%; transform: translateX(-50%); background: #1e7a52; color: white; padding: 10px 40px; border-radius: 8px; font-weight: bold; font-size: 18px; z-index: 10; white-space: nowrap; }
-  #pdf-report .pdf-main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px 15px; margin-top: 30px; }
-  #pdf-report .pdf-column { display: flex; flex-direction: column; gap: 20px; }
-  #pdf-report .pdf-card { background: #fafafa; border: 1px solid #d9c7a3; padding: 14px 16px; display: flex; flex-direction: column; }
-  #pdf-report .pdf-section-gap { height: 12px; }
-  #pdf-report .pdf-card h3 { margin: 0 0 8px; font-size: 14px; border-bottom: 1px solid #d6c7b2; padding-bottom: 5px; color: #333; }
-  #pdf-report .pdf-sub-title { font-weight: bold; margin: 6px 0 3px; font-size: 13px; }
-  #pdf-report .pdf-row { display: flex; justify-content: space-between; font-size: 12px; margin: 4px 0; }
+  #pdf-report .pdf-title { position: absolute; bottom: -20px; left: 65%; transform: translateX(-50%); background: #1e7a52; color: white; padding: 8px 40px; border-radius: 8px; font-weight: bold; font-size: 20px; z-index: 10; white-space: nowrap; }
+  #pdf-report .pdf-main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 8px 15px; margin-top: 28px; flex: 1; }
+  #pdf-report .pdf-column { display: flex; flex-direction: column; gap: 10px; }
+  #pdf-report .pdf-card { background: #fafafa; border: 1px solid #d9c7a3; padding: 10px 14px; display: flex; flex-direction: column; }
+  #pdf-report .pdf-section-gap { height: 6px; }
+  #pdf-report .pdf-card h3 { margin: 0 0 6px; font-size: 18px; border-bottom: 1px solid #d6c7b2; padding-bottom: 4px; color: #333; }
+  #pdf-report .pdf-sub-title { font-weight: bold; margin: 4px 0 2px; font-size: 17px; }
+  #pdf-report .pdf-row { display: flex; justify-content: space-between; font-size: 16px; margin: 2px 0; }
   #pdf-report .pdf-positive span:last-child { color: #1a8f3c; font-weight: bold; }
   #pdf-report .pdf-negative span:last-child { color: #b33939; }
   #pdf-report .pdf-divider { border-top: 1px solid #d6c7b2; margin: 0 0; }
-  #pdf-report .pdf-footer { text-align: center; font-size: 14px; padding: 10px 15px; color: #777; font-style: italic; margin-top: auto; }
-  #pdf-report .pdf-bar { display: block; height: 10px; background: #3c4a5d; }
+  #pdf-report .pdf-footer { text-align: center; font-size: 13px; padding: 6px 15px; color: #777; font-style: italic; flex-shrink: 0; margin-bottom: 20px; }
 </style>
 <div id="pdf-report">
 <div class="pdf-container">
@@ -1185,85 +1562,215 @@ function dscr_calc_shortcode()
     </div>
   </div>
 
+  <div class="pdf-footer">
+    Disclaimer: This calculator provides estimates only. Consult professionals before making investment decisions.
+  </div>
 </div>
-<div class="pdf-footer">
-  Disclaimer: This calculator provides estimates only. Consult professionals before making investment decisions.
-</div>
-<div class="pdf-bar"></div>
 </div>`;
             }
 
-            function downloadPDF() {
-                if (!window.html2pdf) {
-                    alert('PDF library not loaded. Please refresh the page and try again.');
-                    return;
-                }
+    const leadModal = document.getElementById('dscr-lead-modal');
+    const leadName = document.getElementById('dscr-lead-name');
+    const leadEmail = document.getElementById('dscr-lead-email');
+    const leadCancel = document.getElementById('dscr-lead-cancel');
+    const leadSubmit = document.getElementById('dscr-lead-submit');
+    const leadError = document.getElementById('dscr-lead-error');
+    const leadLoading = document.getElementById('dscr-lead-loading');
+    const pdfBtn = app.querySelector('#downloadPdfBtn') || app.querySelector('.cta.secondary');
 
-                if (!calculatedValues || Object.keys(calculatedValues).length === 0) {
-                    alert('Please calculate values first before downloading PDF.');
-                    return;
-                }
+    if (pdfBtn && leadModal) {
+        pdfBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (!calculatedValues || Object.keys(calculatedValues).length === 0) {
+                alert('Please calculate values first before downloading PDF.');
+                return;
+            }
+            leadModal.style.display = 'flex';
+        });
 
-                try {
-                    const htmlContent = buildPdfHtml();
+        leadCancel.addEventListener('click', function() {
+            leadModal.style.display = 'none';
+            leadError.style.display = 'none';
+            leadLoading.style.display = 'none';
+            leadName.value = '';
+            leadEmail.value = '';
+        });
 
-                    const wrapper = document.createElement('div');
-                    wrapper.style.position = 'absolute';
-                    wrapper.style.left = '0';
-                    wrapper.style.top = '0';
-                    wrapper.style.width = '1000px';
-                    wrapper.style.zIndex = '-9999';
-                    wrapper.style.overflow = 'hidden';
-                    wrapper.style.background = '#ffffff';
-                    wrapper.innerHTML = htmlContent;
-                    document.body.appendChild(wrapper);
-
-                    const pdfContent = wrapper.querySelector('#pdf-report');
-
-                    const opt = {
-                        margin: 0,
-                        filename: 'DSCR_Calculator_Report.pdf',
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: {
-                            scale: 2,
-                            useCORS: true,
-                            letterRendering: true,
-                            width: 1000,
-                            scrollX: 0,
-                            scrollY: 0
-                        },
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                    };
-
-                    html2pdf().set(opt).from(pdfContent).save().then(function () {
-                        document.body.removeChild(wrapper);
-                    }).catch(function (err) {
-                        console.error('PDF generation error:', err);
-                        document.body.removeChild(wrapper);
-                        alert('Error generating PDF: ' + err.message);
-                    });
-                } catch (error) {
-                    console.error('Error generating PDF:', error);
-                    alert('Error generating PDF: ' + error.message);
-                }
+        leadSubmit.addEventListener('click', function(e) {
+            e.preventDefault();
+            const name = leadName.value.trim();
+            const email = leadEmail.value.trim();
+            
+            if (!name || !email) {
+                showError('Please provide both your name and email.');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('Please enter a valid email address.');
+                return;
             }
 
-            // Add PDF download button event
-            const pdfBtn = app.querySelector('#downloadPdfBtn') || app.querySelector('.cta.secondary');
-            if (pdfBtn) {
-                pdfBtn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    console.log('PDF button clicked');
-                    try {
-                        downloadPDF();
-                    } catch (error) {
-                        console.error('Error generating PDF:', error);
-                        alert('Error generating PDF. Please check the console for details.');
+            leadError.style.display = 'none';
+            leadLoading.style.display = 'block';
+            leadSubmit.disabled = true;
+            leadCancel.disabled = true;
+
+            generateAndSendPdf(name, email);
+        });
+
+        function generateAndSendPdf(name, email) {
+            try {
+                const htmlContent = buildPdfHtml();
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.left = '0';
+                wrapper.style.top = '0';
+                wrapper.style.width = '1000px';
+                wrapper.style.zIndex = '-9999';
+                wrapper.style.overflow = 'hidden';
+                wrapper.style.background = '#ffffff';
+                wrapper.innerHTML = htmlContent;
+                document.body.appendChild(wrapper);
+
+                const pdfContent = wrapper.querySelector('#pdf-report');
+                const opt = {
+                    margin: 0,
+                    filename: 'DSCR_Calculator_Report.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, letterRendering: true, width: 1000, scrollX: 0, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(pdfContent).outputPdf('datauristring').then(function(pdfBase64) {
+                    if (typeof dscrAjax !== 'undefined') {
+                        const getInputValStr = (id) => {
+                            const el = app.querySelector(`[data-id="${id}"] input[type="text"]`);
+                            return el ? el.value : '0';
+                        };
+                        const formatCurrencyPDF = (value) => '$' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        
+                        const cv = calculatedValues;
+                        const fd = {
+                            fullName: name,
+                            email: email,
+                            purchaseOr: 'Purchase',
+                            purchasePrice: formatCurrencyPDF(getInputValStr('price')),
+                            numberOf119: '1',
+                            ltv120: getInputValStr('ltv') + '%',
+                            number121: getInputValStr('rate') + '%',
+                            number122: getInputValStr('term') || '30',
+                            number123: getInputValStr('origination') + '%',
+                            loanClosing: formatCurrencyPDF(getInputValStr('closing-fees')),
+                            typeA153: formatCurrencyPDF(getInputValStr('rent')),
+                            vacancyRate152: getInputValStr('vacancy') + '%',
+                            propertyTaxes: formatCurrencyPDF(getInputValStr('taxes')),
+                            insurance: formatCurrencyPDF(getInputValStr('insurance')),
+                            monthlyHoa: formatCurrencyPDF(getInputValStr('hoa')),
+                            annualRepairs: formatCurrencyPDF(getInputValStr('repair')),
+                            annualUtilities: formatCurrencyPDF(getInputValStr('utilities')),
+                            thirdParty: formatCurrencyPDF(getInputValStr('third-party')),
+                            pricePer89: formatCurrencyPDF(cv.pricePerUnit),
+                            loanamount: formatCurrencyPDF(cv.loanAmount),
+                            downPayment: formatCurrencyPDF(cv.downPayment),
+                            monthlyPayment92: formatCurrencyPDF(cv.monthlyPI),
+                            typeA93: formatCurrencyPDF(cv.pitia),
+                            typeA94: formatCurrencyPDF(cv.annualMortgagePayment),
+                            typeA95: formatCurrencyPDF(cv.originationFeeAmount),
+                            grossMonthly96: formatCurrencyPDF(cv.grossMonthlyRentalIncome),
+                            typeA99: formatCurrencyPDF(cv.vacancyDeduction),
+                            typeA99_2: formatCurrencyPDF(cv.netEffectiveRent),
+                            taxesAnd100: formatCurrencyPDF(cv.taxesAndInsurance),
+                            typeA101: formatCurrencyPDF(cv.annualHOA),
+                            typeA102: formatCurrencyPDF(cv.annualRepair),
+                            typeA103: formatCurrencyPDF(cv.annualUtilities),
+                            operatingExpenses104: formatCurrencyPDF(cv.operatingExpenses),
+                            typeA105: formatCurrencyPDF(cv.netOperatingIncome),
+                            typeA106: formatCurrencyPDF(cv.netMonthlyCashflow),
+                            typeA107: cv.capRate.toFixed(2) + '%',
+                            typeA108: cv.cashOnCashReturn.toFixed(2) + '%',
+                            typeA109: cv.dscr.toFixed(2),
+                            typeA110: formatCurrencyPDF(cv.totalClosingCost),
+                            typeA111: formatCurrencyPDF(cv.cashNeededToClose)
+                        };
+
+                        const formData = new URLSearchParams();
+                        formData.append('action', 'dscr_submit_lead');
+                        formData.append('nonce', dscrAjax.nonce);
+                        formData.append('name', name);
+                        formData.append('email', email);
+                        formData.append('form_data', JSON.stringify(fd)); // Placed before PDF to dodge server truncation limits
+                        formData.append('pdf_data', pdfBase64);
+
+                        fetch(dscrAjax.url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: formData.toString()
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            console.log("Server response:", data);
+                            finalizeDownload(opt, pdfContent, wrapper);
+                        })
+                        .catch(err => {
+                            console.error("Ajax Error:", err);
+                            finalizeDownload(opt, pdfContent, wrapper);
+                        });
+                    } else {
+                        finalizeDownload(opt, pdfContent, wrapper);
                     }
                 });
-            } else {
-                console.error('PDF button not found');
+            } catch (err) {
+                showError('Error preparing PDF: ' + err.message);
             }
+        }
+
+        function finalizeDownload(opt, pdfContent, wrapper) {
+            html2pdf().set(opt).from(pdfContent).save().then(function () {
+                document.body.removeChild(wrapper);
+                hideModal();
+            }).catch(function (err) {
+                document.body.removeChild(wrapper);
+                showError('Error downloading PDF: ' + err.message);
+            });
+        }
+
+        function hideModal() {
+            if(leadModal) {
+                leadModal.style.display = 'none';
+                leadLoading.style.display = 'none';
+                leadSubmit.disabled = false;
+                leadCancel.disabled = false;
+                leadName.value = '';
+                leadEmail.value = '';
+            }
+        }
+
+        function showError(msg) {
+            leadError.style.display = 'block';
+            leadError.textContent = msg;
+            leadSubmit.disabled = false;
+            leadCancel.disabled = false;
+            leadLoading.style.display = 'none';
+        }
+
+    } else if (pdfBtn) {
+        pdfBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            try {
+                // Inline default fallback if modal is miraculously missing
+                const htmlContent = buildPdfHtml();
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.left = '0'; wrapper.style.top = '0'; wrapper.style.width = '1000px';
+                wrapper.style.zIndex = '-9999'; wrapper.style.overflow = 'hidden'; wrapper.style.background = '#ffffff';
+                wrapper.innerHTML = htmlContent;
+                document.body.appendChild(wrapper);
+                const pdfContent = wrapper.querySelector('#pdf-report');
+                const opt = { margin: 0, filename: 'DSCR_Calculator_Report.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, letterRendering: true, width: 1000, scrollX: 0, scrollY: 0 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+                html2pdf().set(opt).from(pdfContent).save().then(() => document.body.removeChild(wrapper));
+            } catch (err) { alert(err.message); }
+        });
+    }
 
             // Final init
             calculate();
